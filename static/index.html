@@ -2,87 +2,144 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#1e3a8a" />
-    <title>AI Coach Starter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#14283d" />
+    <meta name="description" content="A guided workspace for Ensign College ENS 101 mentor appointments." />
+    <title>ENS 101 Mentor Desk</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
   <body>
-    <div class="app-container">
-      <!-- Top Header -->
+    <div class="app-shell">
       <header class="topbar">
-        <div class="brand-group">
-          <a class="brand" href="/" aria-label="AI Coach home">AI Coach Starter</a>
-          <span class="brand-sub">Interactive Assistant</span>
+        <a class="brand" href="#" aria-label="ENS 101 Mentor Desk home">
+          <span class="brand-mark" aria-hidden="true">E</span>
+          <span class="brand-copy"><strong>ENS 101</strong><small>Mentor Desk</small></span>
+        </a>
+        <nav class="top-nav" aria-label="Main navigation">
+          <button class="top-nav-button active" data-view="appointment" type="button">Appointment</button>
+          <button class="top-nav-button" data-view="resources" type="button">Resources</button>
+        </nav>
+        <div class="top-actions">
+          <span class="autosave-status"><span class="status-dot"></span><span id="save-status">Saved locally</span></span>
+          <button id="new-appointment" class="button ghost" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            New appointment
+          </button>
         </div>
-        <button id="new-chat" class="quiet-button" type="button" aria-label="Start a new conversation">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          <span>New chat</span>
-        </button>
       </header>
 
-      <!-- Compact 4-Step Flow Navigation -->
-      <nav class="step-nav" aria-label="Preparation steps">
-        <div class="step-list">
-          <button class="step-btn active" data-mode="step1" type="button">
-            <span class="step-num">1</span>
-            <span class="step-text">Discovery</span>
-          </button>
-          <button class="step-btn" data-mode="step2" type="button">
-            <span class="step-num">2</span>
-            <span class="step-text">Drafting</span>
-          </button>
-          <button class="step-btn" data-mode="step3" type="button">
-            <span class="step-num">3</span>
-            <span class="step-text">Practice</span>
-          </button>
-          <button class="step-btn" data-mode="step4" type="button">
-            <span class="step-num">4</span>
-            <span class="step-text">Questions</span>
-          </button>
-        </div>
-      </nav>
-
-      <!-- Main Chat Workspace -->
-      <main class="main-content">
-        <section class="coach-panel" aria-live="polite">
-          <div class="coach-head">
-            <div class="coach-avatar">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 3.3 2 6.2 5 7.4V20a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2.6c3-1.2 5-4.1 5-7.4a8 8 0 0 0-8-8z"/><line x1="9.5" y1="9" x2="9.51" y2="9"/><line x1="14.5" y1="9" x2="14.51" y2="9"/></svg>
-            </div>
-            <div class="coach-info">
-              <p class="coach-name">AI Coach</p>
-              <p id="mode-label" class="mode-label">Discovery & Research</p>
-            </div>
-            <span id="service-status" class="status">AI Live</span>
+      <div class="workspace">
+        <aside class="workflow-sidebar" aria-label="Appointment workflow">
+          <div class="sidebar-heading">
+            <p class="eyebrow appointment-label">APPOINTMENT 1a GUIDE</p>
+            <div class="progress-row"><strong id="progress-label">0% complete</strong><span id="progress-count">0 of 23</span></div>
+            <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
           </div>
-
-          <!-- Message Transcript -->
-          <div id="messages" class="messages"></div>
-
-          <!-- Clickable Suggested Prompts -->
-          <div class="suggestions-wrap">
-            <div class="suggestions" id="suggestions"></div>
+          <nav id="workflow-nav" class="workflow-nav"></nav>
+          <div class="privacy-card">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <div><strong>Keep notes appropriate</strong><p>Do not enter student IDs, passwords, financial, health, or other sensitive details.</p></div>
           </div>
+        </aside>
 
-          <!-- Input Composer Form -->
-          <form id="chat-form" class="composer">
-            <label class="sr-only" for="message-input">Message the coach</label>
-            <textarea id="message-input" rows="1" placeholder="Type your message or select a prompt above..."></textarea>
-            <button type="submit" aria-label="Send message" id="send-button">
-              <span>Send</span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
+        <main class="main-area">
+          <section id="appointment-view" class="view active" aria-label="Appointment workspace">
+            <div class="page-heading">
+              <div><p class="eyebrow appointment-label">ENS 101 · APPOINTMENT 1a</p><h1 id="step-title">Begin the appointment</h1><p id="step-description" class="page-description"></p></div>
+              <span id="step-duration" class="duration-chip"></span>
+            </div>
+
+            <section class="student-card card" aria-labelledby="student-heading">
+              <div class="section-heading compact">
+                <div><p class="eyebrow">Session details</p><h2 id="student-heading">Who are you meeting?</h2></div>
+                <span class="optional-label">Non-sensitive details only</span>
+              </div>
+              <div class="student-fields">
+                <label><span>Preferred name</span><input id="student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
+                <label><span>Major or program</span><input id="student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
+                <label><span>Career direction</span><input id="career-direction" type="text" autocomplete="off" placeholder="e.g., UX designer" maxlength="100" /></label>
+                <label class="confidence-field"><span>Career confidence: <output id="confidence-output" for="career-confidence">5</output>/10</span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
+                <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
+                <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
+              </div>
+              <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
+            </section>
+
+            <div class="appointment-grid">
+              <section class="task-card card" aria-labelledby="task-heading">
+                <div class="section-heading">
+                  <div><p id="step-kicker" class="eyebrow"></p><h2 id="task-heading">Appointment tasks</h2></div>
+                  <span id="step-task-count" class="count-badge"></span>
+                </div>
+                <div id="task-list" class="task-list"></div>
+                <div class="step-actions"><button id="previous-step" class="button secondary" type="button">Previous</button><button id="next-step" class="button primary" type="button">Continue</button></div>
+              </section>
+
+              <aside class="support-column">
+                <section class="prompt-card card">
+                  <div class="section-heading compact"><div><p class="eyebrow">Conversation support</p><h2>Try asking</h2></div><span class="sparkle" aria-hidden="true">✦</span></div>
+                  <div id="conversation-prompts" class="prompt-list"></div>
+                </section>
+                <section class="quick-tools card">
+                  <div class="section-heading compact"><div><p class="eyebrow">Quick access</p><h2>Open a tool</h2></div><button class="text-button" data-view-jump="resources" type="button">View all</button></div>
+                  <div id="quick-tool-list" class="quick-tool-list"></div>
+                </section>
+              </aside>
+            </div>
+
+            <section class="notes-card card" aria-labelledby="notes-heading">
+              <div class="section-heading">
+                  <div><p class="eyebrow">Appointment record</p><h2 id="notes-heading">Notes & agreed next steps</h2></div>
+                <div class="notes-actions"><button id="copy-summary" class="button secondary small" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy summary</button></div>
+              </div>
+              <div class="notes-grid">
+                <label><span>Conversation notes</span><textarea id="session-notes" rows="5" placeholder="Capture useful, non-sensitive themes from the conversation."></textarea></label>
+                <label><span>Student’s next step</span><textarea id="student-next-step" rows="5" placeholder="What will the student do, and by when?"></textarea></label>
+                <label><span>Mentor follow-up</span><textarea id="mentor-follow-up" rows="5" placeholder="What will you send, check, or follow up on?"></textarea></label>
+              </div>
+            </section>
+          </section>
+
+          <section id="resources-view" class="view" aria-label="Resource library">
+            <div class="page-heading resource-heading">
+              <div><p class="eyebrow">Resource library</p><h1>Everything you may need, one click away</h1><p class="page-description">Open official Ensign College tools and choose the right referral for the student’s next step.</p></div>
+              <label class="resource-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="resource-search" type="search" placeholder="Search resources" /></label>
+            </div>
+            <div id="resource-filters" class="filter-row" aria-label="Resource categories"></div>
+            <div id="resource-grid" class="resource-grid"></div>
+            <section class="referral-guide card">
+              <div><p class="eyebrow">Not sure where to refer?</p><h2>Use the Student Success Team</h2><p>Academic Advisors help with course and graduation planning, Success Coaches help with habits and college-life barriers, and Career Mentors help with résumés, interviews, internships, and career direction.</p></div>
+              <a class="button primary" href="https://www.ensign.edu/success-teams" target="_blank" rel="noopener">Find the right team member</a>
+            </section>
+          </section>
+        </main>
+
+        <aside id="copilot-panel" class="copilot-panel" aria-label="Mentor Copilot">
+          <div class="copilot-header">
+            <div class="copilot-title"><span class="copilot-icon" aria-hidden="true">✦</span><div><strong>Mentor Copilot</strong><small id="service-status">Ready</small></div></div>
+            <button id="close-copilot" class="icon-button" type="button" aria-label="Close Mentor Copilot">×</button>
+          </div>
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <div id="suggestions" class="copilot-suggestions"></div>
+          <form id="chat-form" class="copilot-composer">
+            <label class="sr-only" for="message-input">Ask Mentor Copilot</label>
+            <textarea id="message-input" rows="2" placeholder="Ask for a question, referral, summary…"></textarea>
+            <button id="send-button" type="submit" aria-label="Send to Mentor Copilot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
           </form>
-        </section>
-      </main>
+          <p class="copilot-privacy">Use general context only. Do not share protected student information.</p>
+        </aside>
+      </div>
 
-      <!-- Footer -->
-      <footer class="app-footer">
-        <p class="footer-privacy">🔒 Keep private personal, financial, and identifying information out of chat.</p>
-      </footer>
+      <button id="open-copilot" class="copilot-fab" type="button" aria-label="Open Mentor Copilot"><span aria-hidden="true">✦</span><span>Mentor Copilot</span></button>
+      <div id="confirm-dialog" class="dialog-backdrop" hidden>
+        <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+          <div class="dialog-icon" aria-hidden="true">↻</div><h2 id="dialog-title">Start a new appointment?</h2><p>This clears the current checklist, session details, notes, and Copilot conversation from this browser.</p>
+          <div class="dialog-actions"><button id="cancel-reset" class="button secondary" type="button">Keep working</button><button id="confirm-reset" class="button danger" type="button">Clear and start new</button></div>
+        </div>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
-    <script src="app.js"></script>
+    <script src="app.js?v=4"></script>
   </body>
 </html>

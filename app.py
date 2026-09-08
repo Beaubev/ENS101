@@ -1,17 +1,9 @@
 #!/usr/bin/env python3
-"""
-Dual-Engine AI Coaching Agent Starter Template with Feedback Store
-------------------------------------------------------------------
-A lightweight, zero-dependency Python backend for a multi-step generative AI coach.
+"""Zero-dependency backend for the ENS 101 Mentor Desk.
 
-Inference Strategy:
-1. Primary:  Qwen (qwen3-vl-30b-a3b-instruct-mlx) on LM Studio via public Tailscale tunnel
-2. Fallback: Google Gemini (gemini-2.5-flash) if LM Studio is unreachable
-3. Offline:  Safe structured coaching guidance if both are unavailable
-
-Feedback Mechanism:
-- Local SQLite database (feedback.db) storing thumbs up / thumbs down ratings
-- Structured suggestion capture with built-in PII privacy guardrails
+The app can use an optional OpenAI-compatible local endpoint, then an optional
+Gemini key, and always retains a useful offline guidance layer. No AI endpoint
+is contacted unless it is explicitly configured in the environment.
 """
 
 import json
@@ -41,11 +33,9 @@ if env_path.exists():
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
-# Primary Engine: LM Studio Qwen via public Tailscale tunnel or local loopback
-LM_STUDIO_URL = os.environ.get(
-    "LM_STUDIO_URL",
-    "https://mac-studio-2.tail299fc7.ts.net:8443/v1"
-).rstrip("/")
+# Optional primary engine: any OpenAI-compatible local or hosted endpoint.
+# It is deliberately disabled by default; configure it in .env when desired.
+LM_STUDIO_URL = os.environ.get("LM_STUDIO_URL", "").strip().rstrip("/")
 QWEN_MODEL = os.environ.get("MODEL_NAME", "qwen3-vl-30b-a3b-instruct-mlx").strip()
 
 # Fallback Engine: Google Gemini API (optional, used if Qwen is unreachable)
@@ -100,22 +90,29 @@ def save_feedback(response_id: str, rating: str, comment: str = "", question: st
 # ==============================================================================
 # Customize this prompt for your agent's specific focus and purpose!
 
-SYSTEM_PROMPT = """You are a helpful, encouraging, and actionable AI Coach for students.
-Your goal is to guide the user step-by-step through their goals with clear, constructive feedback.
+SYSTEM_PROMPT = """You are Mentor Copilot, a concise support tool for Ensign College career mentors conducting ENS 101 Appointment 1a: Ensign Connect and Internship Plan.
+Your user is the mentor, not the student. Help the mentor complete the appointment guide accurately, explain Ensign Connect and internship preparation, choose the appropriate career follow-up, summarize non-sensitive notes, and draft warm follow-up messages.
 
-Core Guidelines:
-1. Be concise, warm, and conversational.
-2. Ask only ONE focused follow-up question at a time to avoid overwhelming the user.
-3. Preserve the user's authentic voice when refining their ideas or drafts.
-4. Give specific praise for what works, and clear suggestions for improvement.
-5. If the user asks for help brainstorming, give 2-3 distinct, realistic ideas.
+ENS 101 (College Success) helps students understand Ensign College's mission and Honor Code, become effective stewards of their education, learn Ensign's instructional approach, and identify academic, career, health, financial, and other college resources.
+
+Guidelines:
+1. Be warm, practical, and brief. Prefer 2-4 useful bullets or one short draft.
+2. Strengthen the mentor's judgment; do not pretend to know private student records or replace college staff.
+3. When suggesting a referral, explain why it fits and give one clear first action.
+4. Ask at most one focused follow-up question.
+5. Do not diagnose, investigate, or invite sensitive details. If safety, health, financial, legal, or crisis concerns appear, advise the mentor to follow Ensign College policy and contact the appropriate professional or supervisor.
+6. Never request student IDs, passwords, financial account information, health details, immigration documents, or other protected information.
+7. Preserve the mentor's authentic, encouraging voice in drafts.
+8. Page 1 of Appointment 1a includes: joining Ensign Connect and a major group; reviewing notification preferences, alumni, and informational interviews; explaining internship planning and early CAR 201 preparation; asking for the student's major, career direction, and 1-10 confidence; checking the PathwayU Career Explorer roadmap; selecting a Career Explorer or Create Resume follow-up; confirming Roadmap 2 through Step 5; and taking the appointment selfie.
+9. Treat internship-course details and international-student work rules as items to verify against current Ensign policy. Never present immigration guidance as a definitive personal determination.
 """
 
 MODE_CONTEXTS = {
-    "step1": "Mode: Step 1 (Discovery & Research). Help the user explore ideas, analyze key requirements, and clarify their target direction.",
-    "step2": "Mode: Step 2 (Drafting & Core Message). Guide the user in building a compelling, clear message or draft. Highlight proof points.",
-    "step3": "Mode: Step 3 (Practice & Role-Play). Act as a realistic partner/reviewer. Give realistic responses and ask one relevant follow-up at a time.",
-    "step4": "Mode: Step 4 (Preparation & Strategic Questions). Help the user craft thoughtful, high-impact questions to ask in their upcoming opportunity.",
+    "begin": "Appointment 1a stage: Begin. Help the mentor open warmly and ask about the student's major and intended career.",
+    "ensign-connect": "Appointment 1a stage: Ensign Connect. Guide the mentor through joining, major groups, preferences, alumni discovery, and informational interviews.",
+    "internship": "Appointment 1a stage: Internship Plan. Explain general preparation, course pairing, timelines, and which details require current-policy verification.",
+    "career-direction": "Appointment 1a stage: Career Direction. Use confidence and PathwayU progress to choose a Career Explorer or Create Resume follow-up.",
+    "complete": "Appointment 1a stage: Complete. Confirm the student and mentor actions, then finish the page 1 checklist with the appointment selfie.",
 }
 
 # ==============================================================================
@@ -159,22 +156,45 @@ class SlidingWindowRateLimiter:
 RATE_LIMITER = SlidingWindowRateLimiter(limit_per_minute=RATE_LIMIT)
 
 # ==============================================================================
-# 6. INFERENCE ENGINES (PRIMARY: QWEN -> FALLBACK: GEMINI -> OFFLINE)
+# 6. GUIDANCE ENGINES (OPTIONAL COMPATIBLE API -> GEMINI -> OFFLINE)
 # ==============================================================================
 
 def fallback_reply(message: str, mode: str) -> str:
-    """Safe fallback response if both inference engines are unreachable."""
+    """Useful, deterministic guidance when no AI engine is configured."""
+    lower = message.lower()
+    if "follow-up" in lower or "message" in lower or "email" in lower:
+        return (
+            "Here is a concise draft:\n\n"
+            "Hi! Thank you for meeting with me today. I appreciated hearing about what you are working toward. "
+            "Your next step is [student action], and I will [mentor follow-up]. I’m cheering you on—please reach out if you need help finding the resource we discussed."
+        )
+    if "summar" in lower or "next step" in lower:
+        return (
+            "Use this three-part summary:\n"
+            "• Focus: the main goal or barrier discussed\n"
+            "• Student action: one specific step and intended time frame\n"
+            "• Mentor follow-up: the resource, introduction, or check-in you agreed to provide"
+        )
+    if "refer" in lower or "resource" in lower or "where" in lower:
+        return (
+            "Match the need to one clear starting point: Academic Advisors for course or graduation planning; "
+            "Student Success Coaches for habits, time management, and college-life barriers; Career Mentors or "
+            "Handshake for résumés, interviews, internships, and career direction. Explain why the resource fits, then help the student open it."
+        )
     fallbacks = {
-        "step1": "Great start exploring this topic! Tell me more about what specific goal or organization you want to target.",
-        "step2": "Let's work on your message. Share your main goal, one clear proof point or example, and what makes you unique.",
-        "step3": "I'm ready to practice with you! Share your draft response and I will provide feedback and a realistic follow-up.",
-        "step4": "Here is a strong starter question: 'What qualities help someone succeed most in this role?' How would you like to customize it?",
+        "begin": "Begin with the prayer direction in the guide, then ask: “What is your major?” and “What type of career do you see yourself doing when you graduate?”",
+        "ensign-connect": "Open Ensign Connect, complete Join Now, join the student's major group, review notification preferences, and show how to explore alumni for informational interviews.",
+        "internship": "Explain that internship planning starts early: connect the experience to the major, review the appropriate internship course, discuss recruiting timelines, and verify international-student rules with the appropriate office.",
+        "career-direction": "Ask for career confidence from 1–10 and check the Career Explorer roadmap. If the student is still exploring, plan a Career Explorer follow-up; if confident, consider a Create Resume appointment.",
+        "complete": "Confirm the student action and mentor follow-up, then finish the page 1 checklist with the appointment selfie after obtaining consent.",
     }
-    return fallbacks.get(mode, "Thanks for sharing! What specific aspect would you like to work on next?")
+    return fallbacks.get(mode, "Choose one open question, one useful resource, and one specific next step. What part would you like help drafting?")
 
 
 def query_qwen(message: str, mode: str, history: list[dict[str, str]]) -> str | None:
     """Queries LM Studio Qwen via OpenAI-compatible /v1/chat/completions."""
+    if not LM_STUDIO_URL:
+        return None
     mode_context = MODE_CONTEXTS.get(mode, "")
     system_content = f"{SYSTEM_PROMPT}\n\n{mode_context}".strip()
 
@@ -257,19 +277,20 @@ def query_gemini(message: str, mode: str, history: list[dict[str, str]]) -> str 
 
 def ask_coach(message: str, mode: str, history: list[dict[str, str]]) -> tuple[str, bool, str]:
     """
-    Dual-engine coordinator:
-    1. Try Primary (LM Studio Qwen)
-    2. Fallback to Gemini (if Qwen is down and key exists)
+    Guidance coordinator:
+    1. Try the configured OpenAI-compatible endpoint
+    2. Fallback to Gemini (if a key is configured)
     3. Fallback to offline guidance
     Returns (reply_text, is_live_ai, engine_name).
     """
-    # 1. Primary: LM Studio Qwen
-    try:
-        reply = query_qwen(message, mode, history)
-        if reply:
-            return reply, True, "qwen"
-    except Exception as e:
-        print(f"[Primary Qwen Unavailable] {e}")
+    # 1. Optional primary: OpenAI-compatible endpoint
+    if LM_STUDIO_URL:
+        try:
+            reply = query_qwen(message, mode, history)
+            if reply:
+                return reply, True, "local"
+        except Exception as e:
+            print(f"[Primary AI Unavailable] {e}")
 
     # 2. Fallback: Google Gemini
     if GEMINI_API_KEY:
@@ -293,6 +314,13 @@ class CoachHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
+    def end_headers(self):
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
+
     def _json(self, payload: dict, status: int = HTTPStatus.OK):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
@@ -307,10 +335,11 @@ class CoachHandler(SimpleHTTPRequestHandler):
         if self.path in ("/healthz", "/api/status"):
             self._json({
                 "status": "ok",
-                "service": "AI Coach",
-                "primary_engine": "LM Studio Qwen",
+                "service": "ENS 101 Mentor Desk",
+                "ai_configured": bool(LM_STUDIO_URL or GEMINI_API_KEY),
+                "primary_engine": "OpenAI-compatible endpoint" if LM_STUDIO_URL else "Not configured",
                 "primary_model": QWEN_MODEL,
-                "primary_endpoint": LM_STUDIO_URL,
+                "primary_configured": bool(LM_STUDIO_URL),
                 "fallback_engine": "Google Gemini" if GEMINI_API_KEY else "Static Fallback",
                 "fallback_configured": bool(GEMINI_API_KEY),
                 "rate_limit_per_min": RATE_LIMIT,
@@ -415,9 +444,8 @@ def main():
     server_address = (HOST, PORT)
     with ThreadingHTTPServer(server_address, CoachHandler) as httpd:
         print("================================================================")
-        print(f"🚀 AI Coach Starter running at http://localhost:{PORT}")
-        print(f"   Primary Engine:   LM Studio Qwen ({QWEN_MODEL})")
-        print(f"   Primary Endpoint: {LM_STUDIO_URL}")
+        print(f"ENS 101 Mentor Desk running at http://localhost:{PORT}")
+        print(f"   Primary Engine:   {'OpenAI-compatible (' + QWEN_MODEL + ')' if LM_STUDIO_URL else 'Not configured'}")
         print(f"   Fallback Engine:  {'Google Gemini (' + GEMINI_MODEL + ')' if GEMINI_API_KEY else 'Offline Fallback (Set GEMINI_API_KEY to enable Gemini)'}")
         print(f"   Rate Limit:       {RATE_LIMIT} req/min per IP")
         print(f"   Feedback Store:   SQLite ({DB_PATH.name})")
