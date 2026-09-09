@@ -105,6 +105,7 @@ Guidelines:
 7. Preserve the mentor's authentic, encouraging voice in drafts.
 8. Page 1 of Appointment 1a includes: joining Ensign Connect and a major group; reviewing notification preferences, alumni, and informational interviews; explaining internship planning and early CAR 201 preparation; asking for the student's major, career direction, and 1-10 confidence; checking the PathwayU Career Explorer roadmap; selecting a Career Explorer or Create Resume follow-up; confirming Roadmap 2 through Step 5; and taking the appointment selfie.
 9. Treat internship-course details and international-student work rules as items to verify against current Ensign policy. Never present immigration guidance as a definitive personal determination.
+10. INTERNSHIP DIRECTIVE: If the mentor asks ANY question regarding internships, internship requirements, finding or applying for an internship, internship courses (CAR 201, CAR 398, CAR 399, CAR 499), PBWE, practical training, or CPT, DO NOT answer the question in the ENS 101 app. Instead, direct them to the Ensign Internship Expert app with the markdown link: [Ensign Internship Expert](/internship/).
 """
 
 MODE_CONTEXTS = {
@@ -159,8 +160,39 @@ RATE_LIMITER = SlidingWindowRateLimiter(limit_per_minute=RATE_LIMIT)
 # 6. GUIDANCE ENGINES (OPTIONAL COMPATIBLE API -> GEMINI -> OFFLINE)
 # ==============================================================================
 
-def fallback_reply(message: str, mode: str) -> str:
+def extract_user_query(message: str) -> str:
+    marker = "\n\nNon-sensitive appointment context:"
+    if marker in message:
+        return message.split(marker, 1)[0].strip()
+    return message.strip()
+
+def is_internship_question(message: str) -> bool:
+    """Checks if the user's query asks questions about internships or CPT."""
+    query = extract_user_query(message)
+    pattern = r"\b(internships?|interns?|cpt|car\s*-?(?:201|398|399|499)|pbwe|practical training)\b"
+    return bool(re.search(pattern, query, re.IGNORECASE))
+
+def get_internship_expert_url(headers=None) -> str:
+    """Returns the URL for Internship Expert based on host/headers."""
+    if headers:
+        host = headers.get("Host", "").lower()
+        referer = headers.get("Referer", "").lower()
+        if "tail299fc7.ts.net" in host or "tail299fc7.ts.net" in referer or "/ens101" in referer or "/mentor-desk" in referer:
+            return "/internship/"
+        if "127.0.0.1" in host or "localhost" in host:
+            host_name = host.split(":")[0]
+            return f"http://{host_name}:5035/"
+    return "/internship/"
+
+def fallback_reply(message: str, mode: str, headers=None) -> str:
     """Useful, deterministic guidance when no AI engine is configured."""
+    if is_internship_question(message):
+        url = get_internship_expert_url(headers)
+        return (
+            "For all questions regarding internships, degree requirements, course pairing, timelines, and CPT authorization, "
+            f"please consult the [Ensign Internship Expert]({url}) app. "
+            "The ENS 101 Mentor Desk does not answer internship questions directly—official internship policies and source-grounded answers are maintained in the Internship Expert."
+        )
     lower = message.lower()
     if "follow-up" in lower or "message" in lower or "email" in lower:
         return (
@@ -275,14 +307,25 @@ def query_gemini(message: str, mode: str, history: list[dict[str, str]]) -> str 
     return None
 
 
-def ask_coach(message: str, mode: str, history: list[dict[str, str]]) -> tuple[str, bool, str]:
+def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=None) -> tuple[str, bool, str]:
     """
     Guidance coordinator:
-    1. Try the configured OpenAI-compatible endpoint
-    2. Fallback to Gemini (if a key is configured)
-    3. Fallback to offline guidance
+    1. Intercept internship questions and redirect to Internship Expert
+    2. Try the configured OpenAI-compatible endpoint
+    3. Fallback to Gemini (if a key is configured)
+    4. Fallback to offline guidance
     Returns (reply_text, is_live_ai, engine_name).
     """
+    # Guardrail: Do not answer internship questions in the ENS 101 app
+    if is_internship_question(message):
+        url = get_internship_expert_url(headers)
+        reply = (
+            "For all questions regarding internships, degree requirements, course pairing, timelines, and CPT authorization, "
+            f"please consult the [Ensign Internship Expert]({url}) app. "
+            "The ENS 101 Mentor Desk does not answer internship questions directly—official internship policies and source-grounded answers are maintained in the Internship Expert."
+        )
+        return reply, True, "internship_redirect"
+
     # 1. Optional primary: OpenAI-compatible endpoint
     if LM_STUDIO_URL:
         try:
@@ -303,7 +346,7 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]]) -> tuple[s
             print(f"[Fallback Gemini Error] {e}")
 
     # 3. Final Fallback: Offline guidance
-    return fallback_reply(message, mode), False, "fallback"
+    return fallback_reply(message, mode, headers), False, "fallback"
 
 
 # ==============================================================================
@@ -320,6 +363,15 @@ class CoachHandler(SimpleHTTPRequestHandler):
             self.send_header("Pragma", "no-cache")
             self.send_header("Expires", "0")
         super().end_headers()
+
+    def do_HEAD(self):
+        if self.path in ("/healthz", "/api/status"):
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            return
+        super().do_HEAD()
 
     def _json(self, payload: dict, status: int = HTTPStatus.OK):
         body = json.dumps(payload).encode("utf-8")
@@ -426,7 +478,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
             return
 
         # 4. Generate Coach Response via Dual-Engine Coordinator
-        reply, is_live, engine = ask_coach(message, mode, history)
+        reply, is_live, engine = ask_coach(message, mode, history, headers=self.headers)
         response_id = f"resp-{uuid.uuid4().hex[:12]}"
         self._json({
             "reply": reply,

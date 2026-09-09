@@ -34,7 +34,7 @@ const WORKFLOW = [
     title: 'Build an internship plan',
     description: 'Give the student a clear overview of the degree internship requirement, preparation timeline, course pairing, and where to verify special circumstances.',
     tasks: [
-      { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'The internship should relate to the student’s major; review the current internship information together.' },
+      { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'The internship should relate to the student’s major; review the current internship information together.', action: { label: 'Open Internship Expert', url: '/internship/' } },
       { id: 'internship-course', title: 'Explain the accompanying internship course', detail: 'The student will enroll in the appropriate internship class at the same time. Verify the current course with the student’s program.' },
       { id: 'internship-international', title: 'Flag international-student planning', detail: 'Do not give immigration advice. Help international students verify current vacation-semester and work-authorization rules with the International Student Office.', action: { label: 'International Student Office', url: 'https://www.ensign.edu/international-students' } },
       { id: 'internship-pbwe', title: 'Explain the PBWE option carefully', detail: 'For on-campus students, CAR 398 PBWE provides real-world project experience and résumé value.' },
@@ -76,6 +76,7 @@ const RESOURCES = [
   { id: 'groups', name: 'Ensign Major Groups', initials: 'G', category: 'Appointment 1a', url: 'https://ces.peoplegrove.com/hub/ces/groups?organization=19963', description: 'Find and join the Ensign College group for the student’s major.' },
   { id: 'preferences', name: 'Connect Preferences', initials: 'N', category: 'Appointment 1a', url: 'https://ces.peoplegrove.com/preferences/notifications', description: 'Review Ensign Connect email and SMS notification choices.' },
   { id: 'community', name: 'Explore the Community', initials: 'A', category: 'Appointment 1a', url: 'https://ces.peoplegrove.com/hub/ces/person', description: 'Browse alumni profiles and identify people for informational interviews.' },
+  { id: 'internship-expert', name: 'Ensign Internship Expert', initials: 'IE', category: 'Appointment 1a', url: '/internship/', description: 'Official source-grounded answers for Ensign College internships, course pairing, and CPT.' },
   { id: 'informational-interview', name: 'Informational Interview Handout', initials: 'II', category: 'Appointment 1a', url: '/resources/informational-interview-handout.pdf', description: 'Review the informational interview guidance and the questions on the back.' },
   { id: 'pathwayu', name: 'Career Explorer', initials: 'CE', category: 'Career Planning', url: 'https://ensign.pathwayu.com/login?next=%2Fresults', description: 'Open PathwayU career assessments and roadmap results.' },
   { id: 'international', name: 'International Students', initials: 'IS', category: 'Support', url: 'https://www.ensign.edu/international-students', description: 'Official help for work authorization and international-student questions.' },
@@ -160,7 +161,7 @@ function renderStep() {
     const item = document.createElement('div');
     const checked = Boolean(state.checked[task.id]);
     item.className = `task-item${checked ? ' checked' : ''}`;
-    const action = task.action ? `<a class="task-action" href="${task.action.url}" target="_blank" rel="noopener">${task.action.label}<svg viewBox="0 0 24 24"><path d="M14 5h5v5M10 14 19 5"/><path d="M19 13v6H5V5h6"/></svg></a>` : '';
+    const action = task.action ? `<a class="task-action" href="${resolveSuiteUrl(task.action.url)}" target="_blank" rel="noopener">${task.action.label}<svg viewBox="0 0 24 24"><path d="M14 5h5v5M10 14 19 5"/><path d="M19 13v6H5V5h6"/></svg></a>` : '';
     item.innerHTML = `<button class="task-check" type="button" aria-label="${checked ? 'Mark incomplete' : 'Mark complete'}: ${task.title}"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></button><div class="task-copy"><strong>${task.title}</strong><p>${task.detail}</p>${action}</div>`;
     item.querySelector('button').addEventListener('click', () => {
       state.checked[task.id] = !checked;
@@ -185,7 +186,7 @@ function renderStep() {
 
 function renderQuickTools() {
   const tools = RESOURCES.filter(resource => ['connect', 'pathwayu', 'office', 'community'].includes(resource.id));
-  $('#quick-tool-list').innerHTML = tools.map(resource => `<a class="quick-tool" href="${resource.url}" target="_blank" rel="noopener"><span class="quick-tool-icon">${resource.initials}</span><strong>${resource.name}</strong></a>`).join('');
+  $('#quick-tool-list').innerHTML = tools.map(resource => `<a class="quick-tool" href="${resolveSuiteUrl(resource.url)}" target="_blank" rel="noopener"><span class="quick-tool-icon">${resource.initials}</span><strong>${resource.name}</strong></a>`).join('');
 }
 
 function renderResources() {
@@ -204,7 +205,7 @@ function renderResources() {
     return matchesFilter && haystack.includes(query);
   });
   $('#resource-grid').innerHTML = filtered.length ? filtered.map(resource => `
-    <a class="resource-card card" href="${resource.url}" target="_blank" rel="noopener">
+    <a class="resource-card card" href="${resolveSuiteUrl(resource.url)}" target="_blank" rel="noopener">
       <div class="resource-top"><span class="resource-icon">${resource.initials}</span><svg class="resource-external" viewBox="0 0 24 24"><path d="M14 5h5v5M10 14 19 5"/><path d="M19 13v6H5V5h6"/></svg></div>
       <h2>${resource.name}</h2><p>${resource.description}</p><span class="resource-category${resource.category === 'Appointment 1a' ? ' appointment-label' : ''}">${resource.category}</span>
     </a>`).join('') : '<div class="resource-empty card"><strong>No matching resources</strong><p>Try a different search or category.</p></div>';
@@ -267,10 +268,72 @@ function openCopilot(prefill = '') {
 
 function closeCopilot() { $('#copilot-panel').classList.remove('open'); $('#open-copilot').hidden = false; }
 
+function resolveSuiteUrl(url) {
+  if (!url) return '#';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  const isProxied = window.location.hostname.endsWith('.tail299fc7.ts.net') || 
+                    window.location.pathname.startsWith('/ens101') ||
+                    window.location.pathname.startsWith('/mentor-desk');
+  const host = window.location.hostname || '127.0.0.1';
+
+  if (url === '/' || url === '/dashboard' || url === '/dashboard/') {
+    return isProxied ? '/' : `http://${host}:5020/`;
+  }
+  if (url === '/internship' || url === '/internship/') {
+    return isProxied ? '/internship/' : `http://${host}:5035/`;
+  }
+  return url;
+}
+
+function configureTopLinks() {
+  const dashBtn = $('#btn-suite-dashboard');
+  if (dashBtn) {
+    dashBtn.href = resolveSuiteUrl('/');
+  }
+
+  const internBtn = $('#btn-internship-expert');
+  if (internBtn) {
+    internBtn.href = resolveSuiteUrl('/internship/');
+  }
+}
+
+function formatAssistantMessage(text) {
+  const escaped = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  let formatted = escaped.replace(
+    /\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s\)\"\']+)\)/g,
+    (_match, label, rawUrl) => {
+      const resolved = resolveSuiteUrl(rawUrl);
+      return `<a href="${resolved}" target="_blank" rel="noopener noreferrer" class="chat-link">${label} &#8599;</a>`;
+    }
+  );
+
+  formatted = formatted.replace(
+    /(^|[\s(])(https?:\/\/[^\s\)\"\']+)/g,
+    (_match, prefix, rawUrl) => `${prefix}<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="chat-link">${rawUrl} &#8599;</a>`
+  );
+
+  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  formatted = formatted.replace(/\n/g, '<br>');
+  return formatted;
+}
+
 function addMessage(role, text, responseId = '') {
   const article = document.createElement('article'); article.className = `message ${role}`;
   const label = document.createElement('small'); label.textContent = role === 'assistant' ? 'Mentor Copilot' : 'You';
-  const body = document.createElement('div'); body.textContent = text;
+  const body = document.createElement('div'); body.className = 'message-body';
+  if (role === 'assistant') {
+    body.innerHTML = formatAssistantMessage(text);
+  } else {
+    body.textContent = text;
+  }
   article.append(label, body); $('#messages').appendChild(article);
   if (role === 'assistant' && responseId) {
     article.title = 'AI-generated guidance—use your judgment and college policy.';
@@ -346,4 +409,4 @@ async function loadServiceStatus() {
   } catch { $('#service-status').textContent = 'Offline guidance ready'; }
 }
 
-bindSessionFields(); bindEvents(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus();
+bindSessionFields(); bindEvents(); configureTopLinks(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus();
