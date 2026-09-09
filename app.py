@@ -9,8 +9,12 @@ is contacted unless it is explicitly configured in the environment.
 import json
 import os
 import re
+import secrets
 import sqlite3
 import ssl
+import stat
+import tempfile
+import threading
 import time
 import uuid
 from collections import defaultdict
@@ -51,8 +55,119 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 DB_PATH = Path(__file__).resolve().parent / "feedback.db"
 
 # ==============================================================================
-# 2. LOCAL FEEDBACK DATABASE (SQLITE)
+# 2. LOCAL FEEDBACK & SUGGESTIONS DATABASE (SQLITE) & ADMIN CREDENTIALS
 # ==============================================================================
+
+def default_data_dir() -> Path:
+    return Path.home() / "Library" / "Application Support" / "ENS 101 Mentor Desk"
+
+
+class AdminCredential:
+    """Owner-readable local admin password with no secret in source control."""
+
+    MIN_PASSWORD_CHARACTERS = 8
+    MAX_PASSWORD_CHARACTERS = 128
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self._lock = threading.RLock()
+        self._ensure_exists()
+
+    def _ensure_exists(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        try:
+            self.path.parent.chmod(0o700)
+        except OSError:
+            pass
+        if not self.path.exists():
+            env_pwd = os.environ.get("ENS101_ADMIN_PASSWORD", "").strip()
+            password = env_pwd if len(env_pwd) >= self.MIN_PASSWORD_CHARACTERS else secrets.token_urlsafe(24)
+            descriptor = os.open(
+                self.path,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o600,
+            )
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(password + "\n")
+        try:
+            self.path.chmod(0o600)
+        except OSError:
+            pass
+        if len(self._read()) < self.MIN_PASSWORD_CHARACTERS:
+            raise RuntimeError("The ENS 101 Mentor Desk admin credential is invalid.")
+
+    def _read(self) -> str:
+        file_stat = self.path.lstat()
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise RuntimeError("The ENS 101 Mentor Desk admin credential is invalid.")
+        return self.path.read_text(encoding="utf-8").rstrip("\n")
+
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        if not isinstance(value, str):
+            raise ValueError("New password must be text.")
+        if value != value.strip():
+            raise ValueError("New password cannot begin or end with whitespace.")
+        if not (cls.MIN_PASSWORD_CHARACTERS <= len(value) <= cls.MAX_PASSWORD_CHARACTERS):
+            raise ValueError(f"New password must be {cls.MIN_PASSWORD_CHARACTERS} to {cls.MAX_PASSWORD_CHARACTERS} characters.")
+        if any(ord(c) < 32 or ord(c) == 127 for c in value):
+            raise ValueError("New password cannot contain control characters.")
+        return value
+
+    def _write_atomic(self, password: str) -> None:
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=".admin-password-",
+            dir=self.path.parent,
+            text=True,
+        )
+        temporary_path = Path(temporary_name)
+        try:
+            os.fchmod(descriptor, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                handle.write(password + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_path, self.path)
+            self.path.chmod(0o600)
+        finally:
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    def verify(self, supplied: str) -> bool:
+        if not isinstance(supplied, str) or len(supplied) > 256:
+            return False
+        with self._lock:
+            return secrets.compare_digest(self._read(), supplied)
+
+    def change(self, current_password: str, new_password: str) -> None:
+        validated = self.validate_new_password(new_password)
+        with self._lock:
+            current = self._read()
+            if not secrets.compare_digest(current, current_password):
+                raise PermissionError("Current admin password was not accepted.")
+            if secrets.compare_digest(current, validated):
+                raise ValueError("New password must be different from current password.")
+            self._write_atomic(validated)
+
+    def replace_for_local_recovery(self, new_password: str) -> None:
+        validated = self.validate_new_password(new_password)
+        with self._lock:
+            if secrets.compare_digest(self._read(), validated):
+                raise ValueError("New password must be different from current password.")
+            self._write_atomic(validated)
+
+
+ADMIN_PASSWORD_PATH = Path(
+    os.environ.get(
+        "ENS101_ADMIN_PASSWORD_FILE",
+        str(default_data_dir() / "admin-password"),
+    )
+).expanduser()
+
+ADMIN_CREDENTIAL = AdminCredential(ADMIN_PASSWORD_PATH)
+
 
 def init_db():
     try:
@@ -70,11 +185,25 @@ def init_db():
                     client_ip TEXT
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS suggestions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    suggestion TEXT NOT NULL,
+                    submitter TEXT,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    admin_notes TEXT,
+                    implemented_at TEXT,
+                    client_ip TEXT
+                )
+            """)
             conn.commit()
     except Exception as e:
         print(f"[DB Init Error] {e}")
 
 init_db()
+
 
 def save_feedback(response_id: str, rating: str, comment: str = "", question: str = "", answer: str = "", mode: str = "", client_ip: str = ""):
     now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
@@ -84,6 +213,87 @@ def save_feedback(response_id: str, rating: str, comment: str = "", question: st
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (now, response_id, mode, rating, question, answer, comment, client_ip))
         conn.commit()
+
+
+def save_suggestion(category: str, suggestion: str, submitter: str = "", client_ip: str = "") -> int:
+    now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO suggestions (created_at, category, suggestion, submitter, status, client_ip)
+            VALUES (?, ?, ?, ?, 'pending', ?)
+        """, (now, category, suggestion, submitter, client_ip))
+        conn.commit()
+        return cursor.lastrowid
+
+
+def get_suggestions():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, created_at, category, suggestion, submitter, status, admin_notes, implemented_at
+            FROM suggestions
+            ORDER BY 
+                CASE status
+                    WHEN 'pending' THEN 1
+                    WHEN 'in_progress' THEN 2
+                    WHEN 'implemented' THEN 3
+                    ELSE 4
+                END,
+                id DESC
+        """)
+        rows = [dict(r) for r in cursor.fetchall()]
+        stats = {
+            "total": len(rows),
+            "pending": sum(1 for r in rows if r["status"] == "pending"),
+            "in_progress": sum(1 for r in rows if r["status"] == "in_progress"),
+            "implemented": sum(1 for r in rows if r["status"] == "implemented"),
+            "dismissed": sum(1 for r in rows if r["status"] == "dismissed"),
+        }
+        return rows, stats
+
+
+def update_suggestion_status(suggestion_id: int, status: str, admin_notes: str | None = None) -> bool:
+    now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        if status == "implemented":
+            if admin_notes is not None:
+                cursor.execute("""
+                    UPDATE suggestions 
+                    SET status = ?, admin_notes = ?, implemented_at = COALESCE(implemented_at, ?)
+                    WHERE id = ?
+                """, (status, admin_notes, now, suggestion_id))
+            else:
+                cursor.execute("""
+                    UPDATE suggestions 
+                    SET status = ?, implemented_at = COALESCE(implemented_at, ?)
+                    WHERE id = ?
+                """, (status, now, suggestion_id))
+        else:
+            if admin_notes is not None:
+                cursor.execute("""
+                    UPDATE suggestions 
+                    SET status = ?, admin_notes = ?
+                    WHERE id = ?
+                """, (status, admin_notes, suggestion_id))
+            else:
+                cursor.execute("""
+                    UPDATE suggestions 
+                    SET status = ?
+                    WHERE id = ?
+                """, (status, suggestion_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_suggestion(suggestion_id: int) -> bool:
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM suggestions WHERE id = ?", (suggestion_id,))
+        conn.commit()
+        return cursor.rowcount > 0
 
 # ==============================================================================
 # 3. COACH SYSTEM PROMPT & PERSONA
@@ -353,6 +563,25 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
 # 7. HTTP REQUEST HANDLER
 # ==============================================================================
 
+def is_lm_studio_online() -> bool:
+    if not LM_STUDIO_URL:
+        return False
+    try:
+        req = Request(f"{LM_STUDIO_URL}/models", headers={"User-Agent": "ens-101"})
+        with urlopen(req, timeout=0.8) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def get_active_engine() -> str:
+    if is_lm_studio_online():
+        return "Qwen Local"
+    if GEMINI_API_KEY:
+        return "Google Gemini"
+    return "Offline Guidance"
+
+
 class CoachHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
@@ -365,12 +594,15 @@ class CoachHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
     def do_HEAD(self):
-        if self.path in ("/healthz", "/api/status"):
+        clean_path = self.path.split("?")[0]
+        if clean_path in ("/healthz", "/api/status"):
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             return
+        if clean_path in ("/admin", "/admin/"):
+            self.path = "/admin.html"
         super().do_HEAD()
 
     def _json(self, payload: dict, status: int = HTTPStatus.OK):
@@ -382,14 +614,23 @@ class CoachHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _is_admin_authenticated(self) -> bool:
+        auth_header = self.headers.get("X-ENS101-Admin", "").strip()
+        if not auth_header:
+            return False
+        return ADMIN_CREDENTIAL.verify(auth_header)
+
     def do_GET(self):
+        clean_path = self.path.split("?")[0]
         # Health & status endpoints
-        if self.path in ("/healthz", "/api/status"):
+        if clean_path in ("/healthz", "/api/status"):
+            active_eng = get_active_engine()
             self._json({
                 "status": "ok",
                 "service": "ENS 101 Mentor Desk",
+                "active_engine": active_eng,
                 "ai_configured": bool(LM_STUDIO_URL or GEMINI_API_KEY),
-                "primary_engine": "OpenAI-compatible endpoint" if LM_STUDIO_URL else "Not configured",
+                "primary_engine": "LM Studio Qwen" if LM_STUDIO_URL else "Not configured",
                 "primary_model": QWEN_MODEL,
                 "primary_configured": bool(LM_STUDIO_URL),
                 "fallback_engine": "Google Gemini" if GEMINI_API_KEY else "Static Fallback",
@@ -397,9 +638,191 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 "rate_limit_per_min": RATE_LIMIT,
             })
             return
+
+        if clean_path in ("/admin", "/admin/"):
+            self.path = "/admin.html"
+            super().do_GET()
+            return
+
+        if clean_path == "/api/admin/suggestions":
+            if not self._is_admin_authenticated():
+                self._json({"error": "Unauthorized. Provide valid admin credentials in X-ENS101-Admin header."}, HTTPStatus.UNAUTHORIZED)
+                return
+            try:
+                suggestions, stats = get_suggestions()
+                self._json({"status": "ok", "stats": stats, "suggestions": suggestions})
+            except Exception as e:
+                print(f"[Admin Suggestions Error] {e}")
+                self._json({"error": "Failed to retrieve suggestions."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
         super().do_GET()
 
     def do_POST(self):
+        # ----------------------------------------------------------------------
+        # Suggestion Submission Endpoint (Public, Rate-limited, Privacy-checked)
+        # ----------------------------------------------------------------------
+        if self.path == "/api/suggestions":
+            client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+            if not RATE_LIMITER.is_allowed(client_ip):
+                self._json(
+                    {"error": f"Rate limit exceeded. Please wait a moment before submitting again."},
+                    HTTPStatus.TOO_MANY_REQUESTS,
+                )
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            category = str(data.get("category", "General")).strip()
+            suggestion = str(data.get("suggestion", "")).strip()
+            submitter = str(data.get("submitter", "")).strip()
+
+            if not suggestion:
+                self._json({"error": "Suggestion text is required."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            warning = check_privacy(suggestion)
+            if not warning and submitter:
+                warning = check_privacy(submitter)
+            if warning:
+                self._json({"error": warning}, HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                new_id = save_suggestion(category, suggestion, submitter, client_ip)
+                self._json({
+                    "status": "ok",
+                    "message": "Thank you! Your suggestion has been received for staff review.",
+                    "id": new_id,
+                })
+            except Exception as e:
+                print(f"[Suggestion Save Error] {e}")
+                self._json({"error": "Failed to save suggestion."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        # ----------------------------------------------------------------------
+        # Admin Authentication Verification Endpoint
+        # ----------------------------------------------------------------------
+        if self.path == "/api/admin/verify":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            password = str(data.get("password", ""))
+            if ADMIN_CREDENTIAL.verify(password):
+                self._json({"status": "ok", "message": "Admin authenticated successfully."})
+            else:
+                self._json({"error": "Incorrect admin password."}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        # ----------------------------------------------------------------------
+        # Admin Update Suggestion Status & Notes Endpoint
+        # ----------------------------------------------------------------------
+        if self.path == "/api/admin/suggestions/status":
+            if not self._is_admin_authenticated():
+                self._json({"error": "Unauthorized."}, HTTPStatus.UNAUTHORIZED)
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            suggestion_id = data.get("id")
+            new_status = str(data.get("status", "")).strip().lower()
+            admin_notes = data.get("admin_notes")
+            if admin_notes is not None:
+                admin_notes = str(admin_notes).strip()
+
+            if not suggestion_id or new_status not in ("pending", "in_progress", "implemented", "dismissed"):
+                self._json({"error": "Invalid id or status. Status must be pending, in_progress, implemented, or dismissed."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                updated = update_suggestion_status(int(suggestion_id), new_status, admin_notes)
+                if updated:
+                    self._json({"status": "ok", "message": "Suggestion status updated successfully."})
+                else:
+                    self._json({"error": "Suggestion not found."}, HTTPStatus.NOT_FOUND)
+            except Exception as e:
+                print(f"[Suggestion Status Update Error] {e}")
+                self._json({"error": "Failed to update suggestion status."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        # ----------------------------------------------------------------------
+        # Admin Delete Suggestion Endpoint
+        # ----------------------------------------------------------------------
+        if self.path == "/api/admin/suggestions/delete":
+            if not self._is_admin_authenticated():
+                self._json({"error": "Unauthorized."}, HTTPStatus.UNAUTHORIZED)
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            suggestion_id = data.get("id")
+            if not suggestion_id:
+                self._json({"error": "Missing suggestion id."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                deleted = delete_suggestion(int(suggestion_id))
+                if deleted:
+                    self._json({"status": "ok", "message": "Suggestion deleted."})
+                else:
+                    self._json({"error": "Suggestion not found."}, HTTPStatus.NOT_FOUND)
+            except Exception as e:
+                print(f"[Suggestion Delete Error] {e}")
+                self._json({"error": "Failed to delete suggestion."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        # ----------------------------------------------------------------------
+        # Admin Password Change Endpoint
+        # ----------------------------------------------------------------------
+        if self.path == "/api/admin/password":
+            if not self._is_admin_authenticated():
+                self._json({"error": "Unauthorized."}, HTTPStatus.UNAUTHORIZED)
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            current_password = str(data.get("current_password", ""))
+            new_password = str(data.get("new_password", ""))
+
+            try:
+                ADMIN_CREDENTIAL.change(current_password, new_password)
+                self._json({"status": "ok", "message": "Admin password changed successfully."})
+            except (ValueError, PermissionError) as pe:
+                self._json({"error": str(pe)}, HTTPStatus.BAD_REQUEST)
+            except Exception as e:
+                print(f"[Admin Password Change Error] {e}")
+                self._json({"error": "Failed to change admin password."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
         # ----------------------------------------------------------------------
         # Feedback Submission Endpoint
         # ----------------------------------------------------------------------

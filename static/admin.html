@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Staff review and implementation panel for ENS 101 Mentor Desk suggestions." />
+    <title>ENS 101 Mentor Desk — Staff Admin</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css?v=5" />
+    <link rel="stylesheet" href="admin.css?v=1" />
+    <!-- Vercel Web Analytics -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <!-- Vercel Speed Insights -->
+    <script>
+      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
+  </head>
+  <body>
+    <div class="app-shell admin-shell">
+      <header class="topbar admin-header">
+        <div class="admin-nav-cluster">
+          <a class="nav-back-link" href="/" title="Back to ENS 101 Mentor Desk">← Mentor Desk</a>
+          <a class="nav-back-link" href="http://127.0.0.1:5020/" target="_blank" rel="noopener" title="Back to CIS AI Dashboard">← CIS Dashboard</a>
+        </div>
+        <div class="admin-brand-center">
+          <span class="admin-brand-title">ENS 101 Mentor Desk</span>
+          <span class="admin-brand-badge">Staff Admin</span>
+        </div>
+        <div class="admin-state-indicator" aria-label="Admin session status">
+          <span id="admin-status-dot" class="status-dot locked" aria-hidden="true"></span>
+          <span id="admin-status-label" class="admin-status-text">Locked</span>
+        </div>
+      </header>
+
+      <main class="admin-main">
+        <!-- Sign-in Panel -->
+        <section id="login-panel" class="admin-login-card" aria-labelledby="login-title">
+          <div class="login-header">
+            <div class="login-icon" aria-hidden="true">🔒</div>
+            <h1 id="login-title">Staff Administration</h1>
+            <p class="login-subtext">Sign in with the locally managed ENS 101 Mentor Desk admin password to review and implement submissions.</p>
+          </div>
+          <form id="login-form" class="login-form">
+            <div class="login-field">
+              <label for="admin-password">Admin Password</label>
+              <input id="admin-password" type="password" autocomplete="current-password" placeholder="Enter admin password" required />
+            </div>
+            <button id="login-submit-btn" class="button primary login-btn" type="submit">Sign In</button>
+          </form>
+          <p id="login-error" class="login-error-msg" role="alert" hidden></p>
+          <p class="login-footnote">Passwords are held only in memory during your active session and are never saved to browser storage.</p>
+        </section>
+
+        <!-- Admin Workspace (Visible after authentication) -->
+        <section id="admin-workspace" class="admin-workspace" hidden aria-label="Suggestion Management">
+          <div class="workspace-header">
+            <div>
+              <p class="eyebrow">CONTINUOUS IMPROVEMENT</p>
+              <h1>Suggestions & Feature Requests</h1>
+              <p class="workspace-subtitle">Review ideas submitted by mentors and track their implementation.</p>
+            </div>
+            <div class="workspace-controls">
+              <button id="refresh-btn" class="button secondary" type="button" title="Refresh suggestions">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                <span>Refresh</span>
+              </button>
+              <button id="logout-btn" class="button ghost-dark" type="button" title="Lock admin session">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Metrics Cards -->
+          <div class="metrics-grid" aria-label="Summary statistics">
+            <article class="metric-card metric-all" data-filter="all">
+              <span class="metric-title">Total Suggestions</span>
+              <strong id="metric-total" class="metric-value">0</strong>
+              <span class="metric-hint">All time</span>
+            </article>
+            <article class="metric-card metric-pending" data-filter="pending">
+              <span class="metric-title">Pending Review</span>
+              <strong id="metric-pending" class="metric-value">0</strong>
+              <span class="metric-hint">Awaiting triage</span>
+            </article>
+            <article class="metric-card metric-in-progress" data-filter="in_progress">
+              <span class="metric-title">In Progress</span>
+              <strong id="metric-in-progress" class="metric-value">0</strong>
+              <span class="metric-hint">Being worked on</span>
+            </article>
+            <article class="metric-card metric-implemented" data-filter="implemented">
+              <span class="metric-title">Implemented</span>
+              <strong id="metric-implemented" class="metric-value">0</strong>
+              <span class="metric-hint">Completed updates</span>
+            </article>
+            <article class="metric-card metric-dismissed" data-filter="dismissed">
+              <span class="metric-title">Dismissed</span>
+              <strong id="metric-dismissed" class="metric-value">0</strong>
+              <span class="metric-hint">Archived</span>
+            </article>
+          </div>
+
+          <!-- Filter & Search Bar -->
+          <div class="filters-bar">
+            <div class="filter-pills" role="radiogroup" aria-label="Status filter">
+              <button class="filter-pill active" data-status="all" type="button">All (<span id="count-all">0</span>)</button>
+              <button class="filter-pill" data-status="pending" type="button">Pending (<span id="count-pending">0</span>)</button>
+              <button class="filter-pill" data-status="in_progress" type="button">In Progress (<span id="count-in_progress">0</span>)</button>
+              <button class="filter-pill" data-status="implemented" type="button">Implemented (<span id="count-implemented">0</span>)</button>
+              <button class="filter-pill" data-status="dismissed" type="button">Dismissed (<span id="count-dismissed">0</span>)</button>
+            </div>
+            <div class="filter-dropdowns">
+              <label class="sr-only" for="category-filter">Filter by Category</label>
+              <select id="category-filter" class="category-select">
+                <option value="all">All Categories</option>
+                <option value="Appointment Guide">Appointment Guide & Checklist</option>
+                <option value="Mentor Copilot">Mentor Copilot AI</option>
+                <option value="Ensign Connect">Ensign Connect Integration</option>
+                <option value="Internship Plan">Internship Plan / CAR 201</option>
+                <option value="Career Direction">Career Direction / PathwayU</option>
+                <option value="UI & Usability">UI & Usability</option>
+                <option value="Resources & Referrals">Resources & Referrals</option>
+                <option value="Other Idea">Other Idea</option>
+              </select>
+              <input id="search-filter" class="search-input" type="search" placeholder="Filter suggestions…" />
+            </div>
+          </div>
+
+          <!-- Suggestions List -->
+          <div id="suggestions-container" class="suggestions-list" aria-live="polite">
+            <div class="loading-state">Loading suggestions…</div>
+          </div>
+
+          <!-- Change Password Section -->
+          <details class="security-accordion">
+            <summary class="security-summary">
+              <span class="summary-icon">🔑</span>
+              <span>Change Admin Password</span>
+            </summary>
+            <form id="change-password-form" class="security-form">
+              <p class="form-hint">Must be at least 8 characters. Written atomically to the local credentials store.</p>
+              <div class="security-grid">
+                <div class="form-group">
+                  <label for="current-pw">Current Password</label>
+                  <input id="current-pw" type="password" required />
+                </div>
+                <div class="form-group">
+                  <label for="new-pw">New Password</label>
+                  <input id="new-pw" type="password" minlength="8" required />
+                </div>
+                <div class="form-group">
+                  <label for="confirm-pw">Confirm New Password</label>
+                  <input id="confirm-pw" type="password" minlength="8" required />
+                </div>
+              </div>
+              <button class="button secondary" type="submit">Update Admin Password</button>
+              <p id="pw-status" class="status-inline" role="status" aria-live="polite"></p>
+            </form>
+          </details>
+        </section>
+      </main>
+
+      <!-- Implementation Notes Modal -->
+      <div id="notes-modal" class="dialog-backdrop" hidden>
+        <div class="dialog notes-dialog-box" role="dialog" aria-modal="true" aria-labelledby="notes-modal-title">
+          <div class="suggestion-dialog-header">
+            <div>
+              <h2 id="notes-modal-title">Implementation Notes</h2>
+              <p id="notes-modal-subtitle" class="dialog-subtitle">Record what changes were made or notes for this suggestion.</p>
+            </div>
+            <button id="close-notes-modal" class="icon-button dialog-close-btn" type="button" aria-label="Close notes modal">×</button>
+          </div>
+          <form id="notes-form">
+            <input type="hidden" id="notes-suggestion-id" />
+            <input type="hidden" id="notes-target-status" />
+            <div class="form-group">
+              <label for="notes-textarea">Admin Notes / Implementation Details</label>
+              <textarea id="notes-textarea" rows="4" maxlength="2000" placeholder="e.g. Added new question to Step 2 checklist and updated Copilot prompt context."></textarea>
+            </div>
+            <div class="dialog-actions">
+              <button id="cancel-notes-btn" class="button secondary" type="button">Cancel</button>
+              <button id="save-notes-btn" class="button primary" type="submit">Save & Update</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="admin-toast" class="toast" role="status" aria-live="polite"></div>
+    </div>
+    <script src="admin.js?v=1"></script>
+  </body>
+</html>

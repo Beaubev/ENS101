@@ -366,7 +366,8 @@ async function submitCopilot(message) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Copilot could not respond.');
     addMessage('assistant', data.reply, data.response_id); state.chatHistory.push({ role: 'assistant', content: data.reply });
-    $('#service-status').textContent = data.live ? 'AI guidance' : 'Offline guidance'; persistState();
+    const replyEngine = data.engine === 'local' ? 'Qwen Local' : (data.engine === 'gemini' ? 'Google Gemini' : (data.engine === 'internship_redirect' ? 'Internship Referral' : 'Offline Guidance'));
+    updateEngineIndicator(replyEngine); persistState();
   } catch (error) { addMessage('assistant', error.message || 'Please try again.'); $('#service-status').textContent = 'Try again'; }
   finally { $('#send-button').disabled = false; }
 }
@@ -380,6 +381,57 @@ function bindStateToInputs() {
   $('#student-name').value = state.student.name; $('#student-program').value = state.student.program; $('#career-direction').value = state.student.career; $('#career-confidence').value = state.student.confidence; $('#roadmap-status').value = state.student.roadmap; $('#followup-track').value = state.student.followup;
   $('#session-notes').value = state.notes; $('#student-next-step').value = state.studentNext; $('#mentor-follow-up').value = state.mentorFollow;
   updateRecommendation();
+}
+
+function openSuggestionModal() {
+  const dialog = $('#suggestion-dialog');
+  if (!dialog) return;
+  dialog.hidden = false;
+  $('#suggestion-text').focus();
+}
+
+function closeSuggestionModal() {
+  const dialog = $('#suggestion-dialog');
+  if (!dialog) return;
+  dialog.hidden = true;
+}
+
+async function handleSuggestionSubmit(event) {
+  event.preventDefault();
+  const submitBtn = $('#submit-suggestion-btn');
+  const category = $('#suggestion-category').value;
+  const suggestion = $('#suggestion-text').value.trim();
+  const submitter = $('#suggestion-submitter').value.trim();
+
+  if (!suggestion) {
+    showToast('Please enter a suggestion.');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+
+  try {
+    const resp = await fetch('/api/suggestions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ category, suggestion, submitter }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.error || 'Failed to submit suggestion.');
+    }
+    showToast(data.message || 'Thank you! Suggestion submitted.');
+    $('#suggestion-text').value = '';
+    $('#suggestion-submitter').value = '';
+    $('#suggestion-char-count').textContent = '0 / 2000';
+    closeSuggestionModal();
+  } catch (err) {
+    showToast(err.message || 'Error submitting suggestion.');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Suggestion';
+  }
 }
 
 function bindEvents() {
@@ -399,14 +451,60 @@ function bindEvents() {
   $('#cancel-reset').addEventListener('click', () => { $('#confirm-dialog').hidden = true; });
   $('#confirm-reset').addEventListener('click', resetAppointment);
   $('#confirm-dialog').addEventListener('click', event => { if (event.target === $('#confirm-dialog')) $('#confirm-dialog').hidden = true; });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape') { $('#confirm-dialog').hidden = true; closeCopilot(); } });
+
+  // Suggestion Modal handlers
+  const openSuggestBtn = $('#open-suggestion-modal');
+  if (openSuggestBtn) openSuggestBtn.addEventListener('click', openSuggestionModal);
+  const closeSuggestBtn = $('#close-suggestion-dialog');
+  if (closeSuggestBtn) closeSuggestBtn.addEventListener('click', closeSuggestionModal);
+  const cancelSuggestBtn = $('#cancel-suggestion');
+  if (cancelSuggestBtn) cancelSuggestBtn.addEventListener('click', closeSuggestionModal);
+  const suggestDialog = $('#suggestion-dialog');
+  if (suggestDialog) suggestDialog.addEventListener('click', event => { if (event.target === suggestDialog) closeSuggestionModal(); });
+  const suggestForm = $('#suggestion-form');
+  if (suggestForm) suggestForm.addEventListener('submit', handleSuggestionSubmit);
+  const suggestText = $('#suggestion-text');
+  if (suggestText) {
+    suggestText.addEventListener('input', () => {
+      const charCount = $('#suggestion-char-count');
+      if (charCount) charCount.textContent = `${suggestText.value.length} / 2000`;
+    });
+  }
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      $('#confirm-dialog').hidden = true;
+      closeSuggestionModal();
+      closeCopilot();
+    }
+  });
+}
+
+function updateEngineIndicator(engineName) {
+  const badge = $('#ai-engine-badge');
+  const nameEl = $('#ai-engine-name');
+  const serviceStatus = $('#service-status');
+  const isGemini = engineName.toLowerCase().includes('gemini');
+  const isOffline = engineName.toLowerCase().includes('offline') || engineName.toLowerCase().includes('unavailable');
+
+  if (nameEl) nameEl.textContent = engineName;
+  if (badge) {
+    badge.className = `engine-indicator-pill ${isOffline ? 'engine-offline' : (isGemini ? 'engine-gemini' : 'engine-qwen')}`;
+  }
+  if (serviceStatus) {
+    serviceStatus.textContent = engineName;
+  }
 }
 
 async function loadServiceStatus() {
   try {
-    const response = await fetch('/api/status'); const data = await response.json();
-    $('#service-status').textContent = data.ai_configured ? 'AI ready' : 'Offline guidance ready';
-  } catch { $('#service-status').textContent = 'Offline guidance ready'; }
+    const response = await fetch('/api/status');
+    const data = await response.json();
+    const active = data.active_engine || (data.ai_configured ? 'Qwen Local' : 'Offline Guidance');
+    updateEngineIndicator(active);
+  } catch {
+    updateEngineIndicator('Offline Guidance');
+  }
 }
 
 bindSessionFields(); bindEvents(); configureTopLinks(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus();

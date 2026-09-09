@@ -39,6 +39,14 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
             <span>Ensign Internship Expert</span>
           </a>
+          <button id="open-suggestion-modal" class="button ghost nav-header-btn" type="button" title="Suggest how to improve ENS 101 Mentor Desk">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/><path d="M9 21h6"/></svg>
+            <span>Suggest Improvement</span>
+          </button>
+          <div id="ai-engine-badge" class="engine-indicator-pill engine-qwen" title="Active AI inference engine">
+            <span class="engine-indicator-dot"></span>
+            <span id="ai-engine-name">Qwen Local</span>
+          </div>
           <span class="autosave-status"><span class="status-dot"></span><span id="save-status">Saved locally</span></span>
           <button id="new-appointment" class="button ghost" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -127,7 +135,15 @@
             <div id="resource-filters" class="filter-row" aria-label="Resource categories"></div>
             <div id="resource-grid" class="resource-grid"></div>
             <section class="referral-guide card">
-              <div><p class="eyebrow">Not sure where to refer?</p><h2>Use the Student Success Team</h2><p>Academic Advisors help with course and graduation planning, Success Coaches help with habits and college-life barriers, and Career Mentors help with résumés, interviews, internships, and career direction.</p></div>
+              <div>
+                <p class="eyebrow">Not sure where to refer?</p>
+                <h2>Use the Student Success Team</h2>
+                <p>Academic Advisors help with course and graduation planning, Success Coaches help with habits and college-life barriers, and Career Mentors help with résumés, interviews, internships, and career direction.</p>
+                <div class="staff-admin-link-row">
+                  <span>Mentor Desk Administration:</span>
+                  <a class="admin-direct-link" href="/admin/" target="_blank" rel="noopener">Open Staff Admin Panel →</a>
+                </div>
+              </div>
               <a class="button primary" href="https://www.ensign.edu/success-teams" target="_blank" rel="noopener">Find the right team member</a>
             </section>
           </section>
@@ -150,14 +166,62 @@
       </div>
 
       <button id="open-copilot" class="copilot-fab" type="button" aria-label="Open Mentor Copilot"><span aria-hidden="true">✦</span><span>Mentor Copilot</span></button>
+
       <div id="confirm-dialog" class="dialog-backdrop" hidden>
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
           <div class="dialog-icon" aria-hidden="true">↻</div><h2 id="dialog-title">Start a new appointment?</h2><p>This clears the current checklist, session details, notes, and Copilot conversation from this browser.</p>
           <div class="dialog-actions"><button id="cancel-reset" class="button secondary" type="button">Keep working</button><button id="confirm-reset" class="button danger" type="button">Clear and start new</button></div>
         </div>
       </div>
+
+      <div id="suggestion-dialog" class="dialog-backdrop" hidden>
+        <div class="dialog suggestion-dialog-box" role="dialog" aria-modal="true" aria-labelledby="suggestion-dialog-title">
+          <div class="suggestion-dialog-header">
+            <div class="suggestion-title-group">
+              <div class="dialog-icon suggestion-bulb-icon" aria-hidden="true">💡</div>
+              <div>
+                <h2 id="suggestion-dialog-title">Suggest an Improvement</h2>
+                <p class="dialog-subtitle">Share ideas, bug reports, or content updates to improve ENS 101 Mentor Desk.</p>
+              </div>
+            </div>
+            <button id="close-suggestion-dialog" class="icon-button" type="button" aria-label="Close suggestion modal">×</button>
+          </div>
+          <form id="suggestion-form" class="suggestion-form">
+            <div class="form-group">
+              <label for="suggestion-category">Category <span class="required-star">*</span></label>
+              <select id="suggestion-category" required>
+                <option value="Appointment Guide">Appointment Guide & Checklist</option>
+                <option value="Mentor Copilot">Mentor Copilot AI</option>
+                <option value="Ensign Connect">Ensign Connect Integration</option>
+                <option value="Internship Plan">Internship Plan / CAR 201</option>
+                <option value="Career Direction">Career Direction / PathwayU</option>
+                <option value="UI & Usability">UI & Usability</option>
+                <option value="Resources & Referrals">Resources & Referrals</option>
+                <option value="Other Idea">Other Idea</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="suggestion-text">Your Suggestion <span class="required-star">*</span></label>
+              <textarea id="suggestion-text" rows="4" maxlength="2000" placeholder="Describe the improvement, recommended change, or feature you'd like to see..." required></textarea>
+              <div class="field-meta-row">
+                <small class="privacy-hint">Never enter student IDs, grades, or private identifiers.</small>
+                <small id="suggestion-char-count" class="char-count">0 / 2000</small>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="suggestion-submitter">Your Name or Role <small class="optional-tag">(optional)</small></label>
+              <input id="suggestion-submitter" type="text" maxlength="80" placeholder="e.g. Jane Doe, Senior Peer Mentor" />
+            </div>
+            <div class="dialog-actions">
+              <button id="cancel-suggestion" class="button secondary" type="button">Cancel</button>
+              <button id="submit-suggestion-btn" class="button primary" type="submit">Submit Suggestion</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
   </body>
 </html>
