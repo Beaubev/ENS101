@@ -24,6 +24,12 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+try:
+    from ai_fallback_notifier import notify_qwen_fallback
+except ImportError:
+    def notify_qwen_fallback(*args, **kwargs):
+        pass
+
 # ==============================================================================
 # 1. CONFIGURATION
 # ==============================================================================
@@ -537,13 +543,18 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
         return reply, True, "internship_redirect"
 
     # 1. Optional primary: OpenAI-compatible endpoint
+    qwen_error: str | None = None
     if LM_STUDIO_URL:
         try:
             reply = query_qwen(message, mode, history)
             if reply:
                 return reply, True, "local"
+            qwen_error = "Qwen Local returned an empty response"
         except Exception as e:
+            qwen_error = f"Qwen Local error: {e}"
             print(f"[Primary AI Unavailable] {e}")
+    else:
+        qwen_error = "LM Studio endpoint is not configured"
 
     # 2. Fallback: Google Gemini
     if GEMINI_API_KEY:
@@ -551,11 +562,23 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
             print("[Inference] Switching to Google Gemini fallback...")
             reply = query_gemini(message, mode, history)
             if reply:
+                notify_qwen_fallback(
+                    service_name="ENS 101 Mentor Desk",
+                    fallback_engine="Google Gemini",
+                    error_reason=qwen_error or "Qwen Local unavailable",
+                    prompt_snippet=message,
+                )
                 return reply, True, "gemini"
         except Exception as e:
             print(f"[Fallback Gemini Error] {e}")
 
     # 3. Final Fallback: Offline guidance
+    notify_qwen_fallback(
+        service_name="ENS 101 Mentor Desk",
+        fallback_engine="Offline Python Engine",
+        error_reason=qwen_error or "Qwen Local and Gemini unavailable",
+        prompt_snippet=message,
+    )
     return fallback_reply(message, mode, headers), False, "fallback"
 
 
