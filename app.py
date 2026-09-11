@@ -458,7 +458,7 @@ def query_qwen(message: str, mode: str, history: list[dict[str, str]]) -> str | 
     payload = {
         "model": QWEN_MODEL,
         "messages": messages,
-        "temperature": 0.4,
+        "temperature": 0.0,
         "max_tokens": 1024,
     }
 
@@ -499,7 +499,7 @@ def query_gemini(message: str, mode: str, history: list[dict[str, str]]) -> str 
         "systemInstruction": {"parts": [{"text": system_instruction}]},
         "contents": contents,
         "generationConfig": {
-            "temperature": 0.4,
+            "temperature": 0.0,
             "maxOutputTokens": 2048,
         },
     }
