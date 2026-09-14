@@ -244,6 +244,130 @@ function updateRecommendation() {
   $('#followup-recommendation').innerHTML = `${recommendation}<span>The mentor makes the final decision with the student.</span>`;
 }
 
+function setCareerLookupResult(kind, title, details = []) {
+  const result = $('#career-lookup-result');
+  result.innerHTML = '';
+  result.className = `career-lookup-result ${kind}`;
+  const heading = document.createElement('strong');
+  heading.textContent = title;
+  result.appendChild(heading);
+  details.filter(Boolean).forEach(detail => {
+    const line = document.createElement('div');
+    line.textContent = detail;
+    result.appendChild(line);
+  });
+  result.hidden = false;
+}
+
+function setCareerLookupAvailability(available) {
+  $('#career-student-email').disabled = !available;
+  $('#career-lookup-button').disabled = !available;
+}
+
+async function checkCareerExplorerSession() {
+  const status = $('#career-session-status');
+  const authButton = $('#career-auth-button');
+  try {
+    const response = await fetch('/api/career-explorer/admin-status', { cache: 'no-store' });
+    const data = await response.json();
+    if (!data.available) {
+      status.textContent = 'Optional setup needed';
+      status.className = 'career-session-status warning';
+      authButton.hidden = true;
+      setCareerLookupAvailability(false);
+    } else if (data.authenticated) {
+      status.textContent = 'Admin session ready';
+      status.className = 'career-session-status ready';
+      authButton.hidden = true;
+      setCareerLookupAvailability(true);
+    } else {
+      status.textContent = data.in_progress ? 'Finish sign-in in the open window' : 'Staff authentication required';
+      status.className = 'career-session-status warning';
+      authButton.textContent = data.in_progress ? 'Check access' : 'Authenticate PathwayU';
+      authButton.hidden = false;
+      setCareerLookupAvailability(true);
+    }
+    return data;
+  } catch {
+    status.textContent = 'Lookup service unavailable';
+    status.className = 'career-session-status warning';
+    authButton.hidden = true;
+    setCareerLookupAvailability(false);
+    return null;
+  }
+}
+
+async function launchCareerExplorerLogin() {
+  const button = $('#career-auth-button');
+  button.disabled = true;
+  try {
+    const response = await fetch('/api/career-explorer/launch-login', { method: 'POST' });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Authentication could not be started.');
+    setCareerLookupResult('warning', 'Complete Ensign staff sign-in', ['Finish SSO/MFA in the PathwayU window, close that window, then check access.']);
+  } catch (error) {
+    setCareerLookupResult('error', 'Authentication unavailable', [error.message || 'Please try again.']);
+  } finally {
+    button.disabled = false;
+    await checkCareerExplorerSession();
+  }
+}
+
+function updateRoadmapFromLookup(data) {
+  state.student.roadmap = data.status === 'complete'
+    ? 'Completed'
+    : Number(data.completed_count) > 0 ? 'In progress' : 'Not started';
+  $('#roadmap-status').value = state.student.roadmap;
+  updateRecommendation();
+  persistState();
+}
+
+async function lookupCareerExplorer(event) {
+  event.preventDefault();
+  const emailInput = $('#career-student-email');
+  const button = $('#career-lookup-button');
+  const email = emailInput.value.trim();
+  if (!/^[^@\s]+@ensign\.edu$/i.test(email)) {
+    setCareerLookupResult('error', 'Enter a valid Ensign email', ['Use the student’s @ensign.edu address.']);
+    emailInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Checking…';
+  setCareerLookupResult('warning', 'Checking Career Explorer', ['This can take a few seconds.']);
+  try {
+    const response = await fetch('/api/career-explorer/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await response.json();
+
+    if (data.status === 'complete') {
+      updateRoadmapFromLookup(data);
+      setCareerLookupResult('success', 'Career Explorer complete', ['All four assessments are complete.']);
+    } else if (data.status === 'incomplete') {
+      updateRoadmapFromLookup(data);
+      const missing = Array.isArray(data.missing) && data.missing.length ? `Still needed: ${data.missing.join(', ')}.` : '';
+      setCareerLookupResult('warning', 'Career Explorer not yet complete', [`${data.completed_count || 0} of ${data.total || 4} assessments complete.`, missing]);
+    } else if (data.status === 'not_found') {
+      setCareerLookupResult('error', 'Student not found', ['Verify the @ensign.edu address and try again.']);
+    } else if (data.status === 'auth_required') {
+      setCareerLookupResult('warning', 'Staff authentication required', [data.message]);
+      await checkCareerExplorerSession();
+    } else {
+      setCareerLookupResult('error', 'Lookup unavailable', [data.message || 'Please try again.']);
+    }
+  } catch {
+    setCareerLookupResult('error', 'Lookup unavailable', ['The app could not contact the Career Explorer lookup service.']);
+  } finally {
+    // The email intentionally remains only in this input and is never persisted.
+    button.disabled = false;
+    button.textContent = 'Check completion';
+  }
+}
+
 function buildSummary() {
   const completedLabels = WORKFLOW.flatMap(step => step.tasks).filter(task => state.checked[task.id]).map(task => `- ${task.title}`).join('\n');
   return `ENS 101 APPOINTMENT 1a SUMMARY\n\nStudent preferred name: ${state.student.name || 'Not entered'}\nMajor or program: ${state.student.program || 'Not entered'}\nCareer direction: ${state.student.career || 'Not entered'}\nCareer confidence: ${state.student.confidence || '5'}/10\nCareer Explorer roadmap: ${state.student.roadmap || 'Not selected'}\nNext appointment: ${state.student.followup || 'Not selected'}\n\nCONVERSATION NOTES\n${state.notes || 'No notes entered.'}\n\nSTUDENT NEXT STEP\n${state.studentNext || 'Not entered.'}\n\nMENTOR FOLLOW-UP\n${state.mentorFollow || 'Not entered.'}\n\nCOMPLETED APPOINTMENT TASKS\n${completedLabels || 'None marked complete.'}\n\nPrivacy reminder: Keep this summary only in an approved location and follow applicable student-record policies.`;
@@ -374,6 +498,8 @@ async function submitCopilot(message) {
 
 function resetAppointment() {
   state = defaultState(); localStorage.removeItem(STORAGE_KEY);
+  $('#career-student-email').value = '';
+  $('#career-lookup-result').hidden = true;
   bindStateToInputs(); renderStep(); renderChat(); $('#confirm-dialog').hidden = true; showView('appointment'); showToast('New appointment ready');
 }
 
@@ -438,6 +564,8 @@ function bindEvents() {
   $$('.top-nav-button').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
   $$('[data-view-jump]').forEach(button => button.addEventListener('click', () => showView(button.dataset.viewJump)));
   $('#resource-search').addEventListener('input', renderResources);
+  $('#career-lookup-form').addEventListener('submit', lookupCareerExplorer);
+  $('#career-auth-button').addEventListener('click', launchCareerExplorerLogin);
   $('#previous-step').addEventListener('click', () => { if (state.currentStep > 0) { state.currentStep--; persistState(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
   $('#next-step').addEventListener('click', () => {
     if (state.currentStep < WORKFLOW.length - 1) { state.currentStep++; persistState(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -507,4 +635,4 @@ async function loadServiceStatus() {
   }
 }
 
-bindSessionFields(); bindEvents(); configureTopLinks(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus();
+bindSessionFields(); bindEvents(); configureTopLinks(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus(); checkCareerExplorerSession();

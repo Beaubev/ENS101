@@ -6,6 +6,7 @@ Gemini key, and always retains a useful offline guidance layer. No AI endpoint
 is contacted unless it is explicitly configured in the environment.
 """
 
+import ipaddress
 import json
 import os
 import re
@@ -13,6 +14,8 @@ import secrets
 import sqlite3
 import ssl
 import stat
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -59,6 +62,21 @@ RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MIN", "50"))
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 DB_PATH = Path(__file__).resolve().parent / "feedback.db"
+ROOT_DIR = Path(__file__).resolve().parent
+
+try:
+    from pathwayu_admin_client import (
+        HAVE_PLAYWRIGHT,
+        check_admin_session,
+        lookup_student_completion,
+    )
+except ImportError:
+    HAVE_PLAYWRIGHT = False
+    check_admin_session = None
+    lookup_student_completion = None
+
+ENSIGN_EMAIL_PATTERN = re.compile(r"^[^@\s]+@ensign\.edu$", re.IGNORECASE)
+PATHWAYU_LOGIN_PROCESS = None
 
 # ==============================================================================
 # 2. LOCAL FEEDBACK & SUGGESTIONS DATABASE (SQLITE) & ADMIN CREDENTIALS
@@ -643,8 +661,35 @@ class CoachHandler(SimpleHTTPRequestHandler):
             return False
         return ADMIN_CREDENTIAL.verify(auth_header)
 
+    def _career_lookup_is_local(self) -> bool:
+        try:
+            return ipaddress.ip_address(self.client_address[0]).is_loopback
+        except ValueError:
+            return False
+
     def do_GET(self):
         clean_path = self.path.split("?")[0]
+        if clean_path == "/api/career-explorer/admin-status":
+            if not self._career_lookup_is_local():
+                self._json({
+                    "authenticated": False,
+                    "available": False,
+                    "status": "local_only",
+                    "message": "Career Explorer lookup is available only on the mentor workstation.",
+                }, HTTPStatus.FORBIDDEN)
+                return
+            if not check_admin_session:
+                self._json({
+                    "authenticated": False,
+                    "available": False,
+                    "status": "unavailable",
+                    "message": "Career Explorer lookup is not installed.",
+                }, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            result = check_admin_session()
+            self._json(result)
+            return
+
         # Health & status endpoints
         if clean_path in ("/healthz", "/api/status"):
             active_eng = get_active_engine()
@@ -658,6 +703,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 "primary_configured": bool(LM_STUDIO_URL),
                 "fallback_engine": "Google Gemini" if GEMINI_API_KEY else "Static Fallback",
                 "fallback_configured": bool(GEMINI_API_KEY),
+                "career_explorer_lookup_available": HAVE_PLAYWRIGHT,
                 "rate_limit_per_min": RATE_LIMIT,
             })
             return
@@ -683,6 +729,98 @@ class CoachHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         # ----------------------------------------------------------------------
+        # Career Explorer completion lookup (optional local Playwright helper)
+        # ----------------------------------------------------------------------
+        if self.path == "/api/career-explorer/launch-login":
+            global PATHWAYU_LOGIN_PROCESS
+            if not self._career_lookup_is_local():
+                self._json({
+                    "status": "local_only",
+                    "message": "PathwayU authentication is available only on the mentor workstation.",
+                }, HTTPStatus.FORBIDDEN)
+                return
+            if not HAVE_PLAYWRIGHT:
+                self._json({
+                    "status": "unavailable",
+                    "message": "Install the optional Career Explorer lookup before authenticating.",
+                }, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+
+            if PATHWAYU_LOGIN_PROCESS and PATHWAYU_LOGIN_PROCESS.poll() is None:
+                self._json({
+                    "status": "login_in_progress",
+                    "message": "The authentication window is already open.",
+                })
+                return
+
+            try:
+                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+                PATHWAYU_LOGIN_PROCESS = subprocess.Popen(
+                    [sys.executable, str(ROOT_DIR / "login_pathwayu_admin.py")],
+                    cwd=str(ROOT_DIR),
+                    creationflags=creation_flags,
+                )
+                self._json({
+                    "status": "login_started",
+                    "message": "The PathwayU authentication window is opening.",
+                })
+            except Exception as error:
+                print(f"[PathwayU Login Error] {error}")
+                self._json({
+                    "status": "error",
+                    "message": "The PathwayU authentication window could not be opened.",
+                }, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if self.path == "/api/career-explorer/lookup":
+            if not self._career_lookup_is_local():
+                self._json({
+                    "status": "local_only",
+                    "message": "Career Explorer lookup is available only on the mentor workstation.",
+                }, HTTPStatus.FORBIDDEN)
+                return
+            client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+            if not RATE_LIMITER.is_allowed(client_ip):
+                self._json({
+                    "status": "rate_limited",
+                    "message": "Please wait a moment before checking another student.",
+                }, HTTPStatus.TOO_MANY_REQUESTS)
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                if content_length <= 0 or content_length > 8192:
+                    raise ValueError("Invalid body size")
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+            except Exception:
+                self._json({"status": "error", "message": "Invalid request."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            email = str(data.get("email", "")).strip().lower()
+            if not ENSIGN_EMAIL_PATTERN.fullmatch(email):
+                self._json({
+                    "status": "invalid_email",
+                    "message": "Enter the student's @ensign.edu email address.",
+                }, HTTPStatus.BAD_REQUEST)
+                return
+
+            if not lookup_student_completion:
+                self._json({
+                    "status": "unavailable",
+                    "message": "Career Explorer lookup is not installed.",
+                }, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+
+            result = lookup_student_completion(email)
+            response_status = {
+                "unavailable": HTTPStatus.SERVICE_UNAVAILABLE,
+                "auth_required": HTTPStatus.UNAUTHORIZED,
+                "timeout": HTTPStatus.GATEWAY_TIMEOUT,
+                "error": HTTPStatus.BAD_GATEWAY,
+            }.get(result.get("status"), HTTPStatus.OK)
+            self._json(result, response_status)
+            return
+
         # Suggestion Submission Endpoint (Public, Rate-limited, Privacy-checked)
         # ----------------------------------------------------------------------
         if self.path == "/api/suggestions":

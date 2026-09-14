@@ -7,3 +7,5 @@ __pycache__/
 *.sqlite3
 .DS_Store
 venv/
+.pathwayu-profile/
+.pip-temp/
