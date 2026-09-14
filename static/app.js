@@ -47,16 +47,16 @@ const WORKFLOW = [
   {
     id: 'career-direction', label: 'Career direction', short: 'Confidence and next appointment', duration: '6–8 min',
     title: 'Choose the right career next step',
-    description: 'Use the 1–10 confidence question and Career & Major Explorer Roadmap status to decide whether the next appointment should focus on exploration or résumé creation.',
+    description: 'Use the 1–10 confidence question and Major & Career Exploration status to decide whether the next appointment should focus on exploration or résumé creation.',
     tasks: [
       { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' },
-      { id: 'career-pathwayu', title: 'Check Career Explorer Assessment progress', detail: 'Ask whether the student completed the PathwayU assessments and update the status above.', action: { label: 'Open Career Explorer', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } },
-      { id: 'career-followup', title: 'Choose the next appointment type', detail: 'If the student is still exploring, plan a Career Explorer appointment. If confident, plan a Create Resume appointment.' },
+      { id: 'career-pathwayu', title: 'Check Major & Career Exploration progress', detail: 'Ask whether the student completed the Major & Career Exploration assessments and update the status above.', action: { label: 'Open Major & Career Exploration', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } },
+      { id: 'career-followup', title: 'Choose the next appointment type', detail: 'If the student is still exploring, plan a Major & Career Exploration appointment. If confident, plan a Create Resume appointment.' },
       { id: 'career-roadmap2', title: 'If scheduling Create Resume appointment, show Roadmap 2, Steps 1-5', detail: 'Make sure the student knows what to complete before the next appointment.' },
       { id: 'career-action', title: 'Record a specific student action', detail: 'Add the agreed action and time frame in the appointment record below.' }
     ],
-    prompts: ['On a scale of 1–10, how sure are you about this career direction?', 'Have you completed the Career & Major Explorer Roadmap?', 'What will you complete before our next appointment?'],
-    copilot: ['Recommend the next appointment', 'Explain Career Explorer', 'Draft a student action step']
+    prompts: ['On a scale of 1–10, how sure are you about this career direction?', 'Have you completed the Major & Career Exploration assessments?', 'What will you complete before our next appointment?'],
+    copilot: ['Recommend the next appointment', 'Explain Major & Career Exploration', 'Draft a student action step']
   },
   {
     id: 'complete', label: 'Complete', short: 'Next step and selfie', duration: '2–4 min',
@@ -78,9 +78,9 @@ const RESOURCES = [
   { id: 'community', name: 'Explore the Community', initials: 'A', category: 'Appointment 1a', url: 'https://ces.peoplegrove.com/hub/ces/person', description: 'Browse alumni profiles and identify people for informational interviews.' },
   { id: 'internship-expert', name: 'Ensign Internship Expert', initials: 'IE', category: 'Appointment 1a', url: '/internship/', description: 'Official source-grounded answers for Ensign College internships, course pairing, and CPT.' },
   { id: 'informational-interview', name: 'Informational Interview Handout', initials: 'II', category: 'Appointment 1a', url: '/resources/informational-interview-handout.pdf', description: 'Review the informational interview guidance and the questions on the back.' },
-  { id: 'pathwayu', name: 'Career & Major Explorer Roadmap', initials: 'CE', category: 'Career Planning', url: 'https://ensign.pathwayu.com/login?next=%2Fresults', description: 'Open the Career & Major Explorer Roadmap results.' },
+  { id: 'pathwayu', name: 'Major & Career Exploration', initials: 'CE', category: 'Career Planning', url: 'https://ensign.pathwayu.com/login?next=%2Fresults', description: 'Open the Major & Career Exploration results.' },
   { id: 'international', name: 'International Students', initials: 'IS', category: 'Support', url: 'https://www.ensign.edu/international-students', description: 'Official help for work authorization and international-student questions.' },
-  { id: 'office', name: 'Career Explorer AI', initials: 'AI', category: 'Career Planning', url: 'https://portal.office.com/', description: 'Open Microsoft 365 to access the Career Explorer AI assistant.' },
+  { id: 'office', name: 'Major & Career Exploration AI', initials: 'AI', category: 'Career Planning', url: 'https://portal.office.com/', description: 'Open Microsoft 365 to access the Major & Career Exploration AI assistant.' },
   { id: 'canvas', name: 'Canvas', initials: 'C', category: 'Academic', url: 'https://ensign.instructure.com/', description: 'ENS 101 course materials, assignments, announcements, and grades.' },
   { id: 'handshake', name: 'Handshake', initials: 'H', category: 'Career Planning', url: 'https://app.joinhandshake.com/edu', description: 'Primary student job board, on-campus interviews, and employer connections.' },
   { id: 'career', name: 'Career & Internship Services', initials: 'CS', category: 'Career Planning', url: 'https://www.ensign.edu/CIS', description: 'Career preparation, internships, résumés, interviews, and networking.' }
@@ -241,9 +241,9 @@ function updateRecommendation() {
     ? 'recommendation-low'
     : confidence <= 7 ? 'recommendation-medium' : 'recommendation-high';
   const recommendation = confidence <= 5
-    ? '<strong>Suggested direction:</strong> The student may benefit from a Career Explorer follow-up after completing the Career & Major Explorer Roadmap.'
+    ? '<strong>Suggested direction:</strong> The student may benefit from a Major & Career Exploration follow-up after completing the Major & Career Exploration assessments.'
     : confidence <= 7
-      ? '<strong>Discuss both options:</strong> Clarify the student’s career direction, then choose Career Explorer or Create Resume together.'
+      ? '<strong>Discuss both options:</strong> Clarify the student’s career direction, then choose Major & Career Exploration or Create Resume together.'
       : '<strong>Suggested direction:</strong> If the student remains confident after discussion, consider a Create Resume appointment.';
   recommendationElement.className = `recommendation ${recommendationTone}`;
   recommendationElement.innerHTML = `${recommendation}<span>The mentor makes the final decision with the student.</span>`;
@@ -340,7 +340,7 @@ async function lookupCareerExplorer(event) {
 
   button.disabled = true;
   button.textContent = 'Checking…';
-  setCareerLookupResult('warning', 'Checking Career Explorer', ['This can take a few seconds.']);
+  setCareerLookupResult('warning', 'Checking Major & Career Exploration', ['This can take a few seconds.']);
   try {
     const response = await fetch('/api/career-explorer/lookup', {
       method: 'POST',
@@ -351,11 +351,11 @@ async function lookupCareerExplorer(event) {
 
     if (data.status === 'complete') {
       updateRoadmapFromLookup(data);
-      setCareerLookupResult('success', 'Career Explorer complete', ['All four assessments are complete.']);
+      setCareerLookupResult('success', 'Major & Career Exploration complete', ['All four assessments are complete.']);
     } else if (data.status === 'incomplete') {
       updateRoadmapFromLookup(data);
       const missing = Array.isArray(data.missing) && data.missing.length ? `Still needed: ${data.missing.join(', ')}.` : '';
-      setCareerLookupResult('warning', 'Career Explorer not yet complete', [`${data.completed_count || 0} of ${data.total || 4} assessments complete.`, missing]);
+      setCareerLookupResult('warning', 'Major & Career Exploration not yet complete', [`${data.completed_count || 0} of ${data.total || 4} assessments complete.`, missing]);
     } else if (data.status === 'not_found') {
       setCareerLookupResult('error', 'Student not found', ['Verify the @ensign.edu address and try again.']);
     } else if (data.status === 'auth_required') {
@@ -365,7 +365,7 @@ async function lookupCareerExplorer(event) {
       setCareerLookupResult('error', 'Lookup unavailable', [data.message || 'Please try again.']);
     }
   } catch {
-    setCareerLookupResult('error', 'Lookup unavailable', ['The app could not contact the Career Explorer lookup service.']);
+    setCareerLookupResult('error', 'Lookup unavailable', ['The app could not contact the Major & Career Exploration lookup service.']);
   } finally {
     // The email intentionally remains only in this input and is never persisted.
     button.disabled = false;
@@ -375,7 +375,7 @@ async function lookupCareerExplorer(event) {
 
 function buildSummary() {
   const completedLabels = WORKFLOW.flatMap(step => step.tasks).filter(task => state.checked[task.id]).map(task => `- ${task.title}`).join('\n');
-  return `ENS 101 APPOINTMENT 1a SUMMARY\n\nStudent preferred name: ${state.student.name || 'Not entered'}\nMajor or program: ${state.student.program || 'Not entered'}\nCareer direction: ${state.student.career || 'Not entered'}\nCareer confidence: ${state.student.confidence || '5'}/10\nCareer & Major Explorer Roadmap: ${state.student.roadmap || 'Not selected'}\nNext appointment: ${state.student.followup || 'Not selected'}\n\nCONVERSATION NOTES\n${state.notes || 'No notes entered.'}\n\nSTUDENT NEXT STEP\n${state.studentNext || 'Not entered.'}\n\nMENTOR FOLLOW-UP\n${state.mentorFollow || 'Not entered.'}\n\nCOMPLETED APPOINTMENT TASKS\n${completedLabels || 'None marked complete.'}\n\nPrivacy reminder: Keep this summary only in an approved location and follow applicable student-record policies.`;
+  return `ENS 101 APPOINTMENT 1a SUMMARY\n\nStudent preferred name: ${state.student.name || 'Not entered'}\nMajor or program: ${state.student.program || 'Not entered'}\nCareer direction: ${state.student.career || 'Not entered'}\nCareer confidence: ${state.student.confidence || '5'}/10\nMajor & Career Exploration: ${state.student.roadmap || 'Not selected'}\nNext appointment: ${state.student.followup || 'Not selected'}\n\nCONVERSATION NOTES\n${state.notes || 'No notes entered.'}\n\nSTUDENT NEXT STEP\n${state.studentNext || 'Not entered.'}\n\nMENTOR FOLLOW-UP\n${state.mentorFollow || 'Not entered.'}\n\nCOMPLETED APPOINTMENT TASKS\n${completedLabels || 'None marked complete.'}\n\nPrivacy reminder: Keep this summary only in an approved location and follow applicable student-record policies.`;
 }
 
 async function copyText(text, successMessage) {
@@ -489,7 +489,7 @@ async function submitCopilot(message) {
   openCopilot();
   addMessage('user', message); state.chatHistory.push({ role: 'user', content: message }); persistState();
   $('#service-status').textContent = 'Thinking…'; $('#send-button').disabled = true;
-  const context = [state.student.program && `Major or program: ${state.student.program}.`, state.student.career && `Career direction: ${state.student.career}.`, `Career confidence: ${state.student.confidence}/10.`, state.student.roadmap && `Career & Major Explorer Roadmap: ${state.student.roadmap}.`, state.student.followup && `Planned next appointment: ${state.student.followup}.`, state.notes && `General mentor notes: ${state.notes}`, state.studentNext && `Possible student next step: ${state.studentNext}`].filter(Boolean).join(' ');
+  const context = [state.student.program && `Major or program: ${state.student.program}.`, state.student.career && `Career direction: ${state.student.career}.`, `Career confidence: ${state.student.confidence}/10.`, state.student.roadmap && `Major & Career Exploration: ${state.student.roadmap}.`, state.student.followup && `Planned next appointment: ${state.student.followup}.`, state.notes && `General mentor notes: ${state.notes}`, state.studentNext && `Possible student next step: ${state.studentNext}`].filter(Boolean).join(' ');
   try {
     const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: context ? `${message}\n\nNon-sensitive appointment context: ${context}` : message, mode: WORKFLOW[state.currentStep].id, history: state.chatHistory.slice(0, -1).slice(-8) }) });
     const data = await response.json();

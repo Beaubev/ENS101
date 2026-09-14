@@ -8,9 +8,9 @@ A focused appointment workspace for Ensign College career mentors. It turns **EN
 - Persistent appointment checklist built directly from the Appointment 1a guide
 - Non-sensitive session details and locally saved working notes
 - Copyable appointment summary with student and mentor next steps
-- In-context links to Ensign Connect, major groups, notification preferences, alumni, Career Explorer, and international-student support
-- Career Explorer AI launcher and Mentor Copilot support for questions, internship explanations, summaries, and follow-up drafts
-- Optional staff-authenticated lookup of a student's four Career Explorer assessment completion statuses
+- In-context links to Ensign Connect, major groups, notification preferences, alumni, Major & Career Exploration, and international-student support
+- Major & Career Exploration AI launcher and Mentor Copilot support for questions, internship explanations, summaries, and follow-up drafts
+- Optional staff-authenticated lookup of a student's four Major & Career Exploration assessment completion statuses
 - Built-in offline guidance, so the app is useful without an AI key
 - Privacy filters, rate limiting, and local feedback storage
 - Responsive desktop, tablet, and mobile layout
@@ -25,7 +25,7 @@ python app.py
 
 Open [http://localhost:5050](http://localhost:5050).
 
-## Optional Career Explorer completion lookup
+## Optional Major & Career Exploration completion lookup
 
 The lookup follows the reference Mentor Explorer architecture: it opens a dedicated local Chromium profile for Ensign staff SSO, searches PathwayU by the student's `@ensign.edu` email, and returns only whether the four assessments are complete. It does not save the email or download a report.
 
