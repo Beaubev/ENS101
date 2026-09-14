@@ -34,7 +34,7 @@ const WORKFLOW = [
     title: 'Build an internship plan',
     description: 'Give the student a clear overview of the degree internship requirement, preparation timeline, course pairing, and where to verify special circumstances.',
     tasks: [
-      { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'The internship should relate to the student’s major; review the current internship information together.', action: { label: 'Open Internship Expert', url: '/internship/' } },
+      { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'Review Internship Process (blue bookmark) together. The internship should relate to the student’s major.', action: { label: 'Open Internship Expert', url: '/internship/' } },
       { id: 'internship-course', title: 'Explain the accompanying internship course', detail: 'The student will enroll in the appropriate internship class at the same time. Verify the current course with the student’s program.' },
       { id: 'internship-international', title: 'Flag international-student planning', detail: 'Do not give immigration advice. Help international students verify current vacation-semester and work-authorization rules with the International Student Office.', action: { label: 'International Student Office', url: 'https://www.ensign.edu/international-students' } },
       { id: 'internship-pbwe', title: 'Explain the PBWE option carefully', detail: 'For on-campus students, CAR 398 PBWE provides real-world project experience and résumé value.' },
