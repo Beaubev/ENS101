@@ -337,7 +337,7 @@ Guidelines:
 5. Do not diagnose, investigate, or invite sensitive details. If safety, health, financial, legal, or crisis concerns appear, advise the mentor to follow Ensign College policy and contact the appropriate professional or supervisor.
 6. Never request student IDs, passwords, financial account information, health details, immigration documents, or other protected information.
 7. Preserve the mentor's authentic, encouraging voice in drafts.
-8. Page 1 of Appointment 1a includes: joining Ensign Connect and a major group; reviewing notification preferences, alumni, and informational interviews; explaining internship planning and early CAR 201 preparation; asking for the student's major, career direction, and 1-10 confidence; checking the Career Explorer Assessment (PathwayU); selecting a Career Explorer or Create Resume follow-up; confirming Roadmap 2 through Step 5; and taking the appointment selfie.
+8. Page 1 of Appointment 1a includes: joining Ensign Connect and a major group; reviewing notification preferences, alumni, and informational interviews; explaining internship planning and early CAR 201 preparation; asking for the student's major, career direction, and 1-10 confidence; checking the Career & Major Explorer Roadmap; selecting a Career Explorer or Create Resume follow-up; confirming Roadmap 2 through Step 5; and taking the appointment selfie.
 9. Treat internship-course details and international-student work rules as items to verify against current Ensign policy. Never present immigration guidance as a definitive personal determination.
 10. INTERNSHIP DIRECTIVE: If the mentor asks ANY question regarding internships, internship requirements, finding or applying for an internship, internship courses (CAR 201, CAR 398, CAR 399, CAR 499), PBWE, practical training, or CPT, DO NOT answer the question in the ENS 101 app. Instead, direct them to the Ensign Internship Expert app with the markdown link: [Ensign Internship Expert](/internship/).
 """
@@ -451,7 +451,7 @@ def fallback_reply(message: str, mode: str, headers=None) -> str:
         "begin": "Begin with the prayer direction in the guide, then ask: “What is your major?” and “What type of career do you see yourself doing when you graduate?”",
         "ensign-connect": "Open Ensign Connect, complete Join Now, join the student's major group, review notification preferences, and show how to explore alumni for informational interviews.",
         "internship": "Explain that internship planning starts early: connect the experience to the major, review the appropriate internship course, discuss recruiting timelines, and verify international-student rules with the appropriate office.",
-        "career-direction": "Ask for career confidence from 1–10 and check the Career Explorer Assessment (PathwayU). If the student is still exploring, plan a Career Explorer follow-up; if confident, consider a Create Resume appointment.",
+        "career-direction": "Ask for career confidence from 1–10 and check the Career & Major Explorer Roadmap. If the student is still exploring, plan a Career Explorer follow-up; if confident, consider a Create Resume appointment.",
         "complete": "Confirm the student action and mentor follow-up, then finish the page 1 checklist with the appointment selfie after obtaining consent.",
     }
     return fallbacks.get(mode, "Choose one open question, one useful resource, and one specific next step. What part would you like help drafting?")
