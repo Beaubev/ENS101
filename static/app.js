@@ -36,9 +36,9 @@ const WORKFLOW = [
     tasks: [
       { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'Review Internship Process (blue bookmark) together. The internship should relate to the student’s major.', action: { label: 'Open Internship Expert', url: '/internship/' } },
       { id: 'internship-course', title: 'Explain the accompanying internship course', detail: 'The student will enroll in the appropriate internship class at the same time. Verify the current course with the student’s program.' },
-      { id: 'internship-international', title: 'Flag international-student planning', detail: 'Do not give immigration advice. Help international students verify current vacation-semester and work-authorization rules with the International Student Office.', action: { label: 'International Student Office', url: 'https://www.ensign.edu/international-students' } },
       { id: 'internship-pbwe', title: 'Explain the PBWE option carefully', detail: 'For on-campus students, CAR 398 PBWE provides real-world project experience and résumé value.' },
       { id: 'internship-timeline', title: 'Discuss application timing', detail: 'Large-company internships may recruit 6–9 months ahead; encourage early research.' },
+      { id: 'internship-international', title: 'Flag international-student planning', detail: 'Do not give immigration advice. Help international students verify current vacation-semester and work-authorization rules with the International Student Office.', action: { label: 'International Student Office', url: 'https://www.ensign.edu/international-students' } },
       { id: 'internship-car201', title: 'Encourage early CAR 201 preparation', detail: 'The guide recommends taking CAR 201 as soon as appropriate so the student is ready when internships open.' }
     ],
     prompts: ['How could an internship connect to the career you want?', 'When would you need to begin applying?', 'What experience would help you feel ready?'],
