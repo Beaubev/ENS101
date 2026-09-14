@@ -235,13 +235,18 @@ function bindSessionFields() {
 
 function updateRecommendation() {
   const confidence = Number(state.student.confidence || 5);
+  const recommendationElement = $('#followup-recommendation');
   $('#confidence-output').textContent = confidence;
+  const recommendationTone = confidence <= 5
+    ? 'recommendation-low'
+    : confidence <= 7 ? 'recommendation-medium' : 'recommendation-high';
   const recommendation = confidence <= 5
     ? '<strong>Suggested direction:</strong> The student may benefit from a Career Explorer follow-up after completing the Career & Major Explorer Roadmap.'
     : confidence <= 7
       ? '<strong>Discuss both options:</strong> Clarify the student’s career direction, then choose Career Explorer or Create Resume together.'
       : '<strong>Suggested direction:</strong> If the student remains confident after discussion, consider a Create Resume appointment.';
-  $('#followup-recommendation').innerHTML = `${recommendation}<span>The mentor makes the final decision with the student.</span>`;
+  recommendationElement.className = `recommendation ${recommendationTone}`;
+  recommendationElement.innerHTML = `${recommendation}<span>The mentor makes the final decision with the student.</span>`;
 }
 
 function setCareerLookupResult(kind, title, details = []) {

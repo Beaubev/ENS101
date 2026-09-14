@@ -178,6 +178,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--n
 .recommendation { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 15px; padding: 10px 12px; border: 1px solid #d8e3e9; border-radius: 8px; color: #3f5362; background: var(--blue-50); font-size: 11px; line-height: 1.45; }
 .recommendation strong { color: var(--navy-800); }
 .recommendation span { flex: 0 0 auto; color: var(--muted); font-size: 9.5px; }
+.recommendation-low { border-color: #9ca3af; color: #111827; background: #f8fafc; }
+.recommendation-low strong { color: #111827; }
+.recommendation-medium { border-color: #f0a35b; color: #9a3412; background: #fff7ed; }
+.recommendation-medium strong { color: #c2410c; }
+.recommendation-high { border-color: #93c5fd; color: #1e40af; background: #eff6ff; }
+.recommendation-high strong { color: #1d4ed8; }
+.recommendation-low span,
+.recommendation-medium span,
+.recommendation-high span { color: inherit; opacity: .78; }
 .appointment-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(290px, .8fr); gap: 20px; align-items: start; }
 .task-card { padding: 22px; }
 .count-badge { padding: 5px 9px; border-radius: 15px; color: var(--muted); background: var(--blue-50); font-size: 10px; font-weight: 750; }
