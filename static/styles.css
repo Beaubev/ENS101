@@ -337,6 +337,509 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--n
 .admin-direct-link { color: var(--navy-800); font-weight: 700; text-decoration: none; border-bottom: 1px dashed var(--navy-800); }
 .admin-direct-link:hover { color: var(--gold); border-bottom-color: var(--gold); }
 
+/* Active Student Switcher in Topbar */
+.active-student-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+.student-select-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9px;
+  padding: 3px 8px 3px 10px;
+}
+.student-switcher-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gold);
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.student-switcher-label svg {
+  width: 14px;
+  height: 14px;
+}
+.student-select {
+  height: 32px;
+  padding: 0 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  border: 1px solid #ced7dd;
+  border-radius: 6px;
+  min-width: 180px;
+  max-width: 260px;
+  cursor: pointer;
+}
+
+/* Sidebar Task Groups */
+.sidebar-task-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 12px 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--blue-50);
+  color: var(--navy-900);
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sidebar-task-title:first-child {
+  margin-top: 4px;
+}
+
+/* Task 1: Prepare Styles */
+.prep-card {
+  padding: 24px;
+  margin-bottom: 22px;
+}
+.prep-lookup-action {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.prep-lookup-action .button {
+  height: 42px;
+  white-space: nowrap;
+}
+.lookup-feedback-banner {
+  margin-top: 14px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.lookup-feedback-banner.success {
+  background: #f3faf6;
+  border: 1px solid #bddbcd;
+  color: #245842;
+}
+.lookup-feedback-banner.warning {
+  background: #fcf8ef;
+  border: 1px solid #e5d7ba;
+  color: #795b1e;
+}
+.lookup-feedback-banner.error {
+  background: #fff7f7;
+  border: 1px solid #e7c5c5;
+  color: #8c3535;
+}
+
+/* Assessment Modules Grid */
+.prep-assessment-section {
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid #dbe3e8;
+  border-radius: 11px;
+  background: #f9fbfc;
+}
+.prep-subheading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.prep-subheading h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: var(--navy-950);
+}
+.assessment-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.assessment-module-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border: 1px solid #e1e7ec;
+  border-radius: 9px;
+  background: #fff;
+  transition: all 0.16s ease;
+}
+.assessment-module-card:hover {
+  border-color: #b7c7d4;
+  box-shadow: 0 4px 12px rgba(20, 40, 61, 0.05);
+}
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.module-icon {
+  font-size: 16px;
+}
+.module-header strong {
+  font-size: 12.5px;
+  color: var(--navy-900);
+}
+.module-status-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10.5px;
+  font-weight: 750;
+  margin-bottom: 6px;
+}
+.module-status-badge.complete {
+  background: #d1fae5;
+  color: #065f46;
+}
+.module-status-badge.pending {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.module-status-badge.missing {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.module-subtext {
+  margin: 0;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* PDF Upload Fallback Dropzone */
+.prep-pdf-section {
+  margin-top: 18px;
+}
+.prep-pdf-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 2px dashed #cbd5dc;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.prep-pdf-dropzone:hover, .prep-pdf-dropzone.dragover {
+  border-color: var(--navy-700);
+  background: var(--blue-50);
+}
+.dropzone-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--navy-700);
+  flex-shrink: 0;
+}
+.dropzone-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dropzone-copy strong {
+  font-size: 12.5px;
+  color: var(--navy-950);
+}
+.dropzone-copy span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.browse-link {
+  color: var(--navy-800);
+  font-weight: 750;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.prep-pdf-status {
+  margin-top: 10px;
+  font-size: 11.5px;
+  color: var(--navy-700);
+}
+
+/* Step 2: Guidance Styles */
+.guidance-profile-banner {
+  padding: 16px 20px;
+  border: 1px solid #d4a72c;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fef9ee 0%, #fff 100%);
+  margin-bottom: 20px;
+}
+.profile-pill-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.profile-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #855d14;
+}
+.profile-code {
+  font-size: 16px;
+  color: var(--navy-950);
+}
+.profile-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trait-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #e5d7ba;
+  border-radius: 16px;
+  font-size: 11.5px;
+  color: #4a3e21;
+}
+.guidance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.guidance-card {
+  padding: 18px;
+  border: 1px solid #e1e7ec;
+  border-radius: 10px;
+  background: #fff;
+}
+.guidance-card.strategy-card {
+  background: #f8fbfd;
+  border-color: #cee0ec;
+  margin-bottom: 18px;
+}
+.guidance-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.guidance-card-icon {
+  font-size: 18px;
+}
+.guidance-card-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--navy-950);
+}
+.guidance-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #2b3947;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* Step 3: Prep Notes Styles */
+.prep-student-recap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid #dce5eb;
+  border-radius: 8px;
+  background: #f7fafc;
+  margin-bottom: 16px;
+}
+.recap-item {
+  font-size: 12px;
+  color: #3f505f;
+}
+.recap-item strong {
+  color: var(--navy-900);
+}
+.prep-notes-editor label span {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--navy-900);
+  margin-bottom: 8px;
+}
+.prep-notes-editor textarea {
+  width: 100%;
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 14px 16px;
+  border: 1px solid #cad6de;
+  border-radius: 9px;
+  resize: vertical;
+}
+.prep-prompts-card {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #e5ebe0;
+  border-radius: 9px;
+  background: #fafbf9;
+}
+.prep-prompts-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #3b6b4c;
+  font-size: 11.5px;
+  margin-bottom: 10px;
+}
+.prep-prompts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.prompt-chip {
+  padding: 6px 11px;
+  border: 1px solid #cfdbd3;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--navy-800);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+.prompt-chip:hover {
+  background: var(--blue-50);
+  border-color: var(--navy-700);
+  transform: translateY(-1px);
+}
+.start-appt-btn {
+  background: var(--green) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  padding: 10px 20px !important;
+}
+.start-appt-btn:hover {
+  background: #1f6448 !important;
+}
+
+/* Task 2 Prep Notes Preview */
+.prep-notes-preview-wrap {
+  margin-top: 18px;
+  padding: 0;
+  overflow: hidden;
+}
+.prep-preview-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #fbfcfd;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--navy-900);
+}
+.prep-preview-toggle:hover {
+  background: var(--blue-50);
+}
+.toggle-icon {
+  font-size: 15px;
+}
+.chevron-down {
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 0.2s ease;
+}
+.prep-preview-body {
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+.prep-preview-text {
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: #2d3b48;
+}
+
+/* Civitas Completion Card */
+.civitas-card {
+  margin-top: 22px;
+  padding: 22px;
+  border: 1.5px solid #287a59;
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+.civitas-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.civitas-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.civitas-badge {
+  display: inline-block;
+  padding: 5px 9px;
+  background: #e8f5ee;
+  border: 1px solid #bddbcd;
+  border-radius: 6px;
+  color: #1a563d;
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+}
+.civitas-title-group h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--navy-950);
+}
+.civitas-title-group p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.civitas-confirmation-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #d4e4db;
+  border-radius: 9px;
+  background: #fff;
+}
+.civitas-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #1f2d3a;
+}
+.civitas-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: var(--green);
+}
+.civitas-confirmation-box .button.danger {
+  align-self: flex-start;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 12.5px;
+}
+
 @media (max-width: 1100px) {
   .topbar { padding: 0 16px; gap: 12px; }
   .nav-header-btn { padding: 6px 10px; font-size: 11px; }

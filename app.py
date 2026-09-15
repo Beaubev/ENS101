@@ -6,6 +6,7 @@ Gemini key, and always retains a useful offline guidance layer. No AI endpoint
 is contacted unless it is explicitly configured in the environment.
 """
 
+import base64
 import ipaddress
 import json
 import os
@@ -25,6 +26,7 @@ from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
 try:
@@ -222,6 +224,29 @@ def init_db():
                     client_ip TEXT
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS appointments (
+                    id TEXT PRIMARY KEY,
+                    student_email TEXT NOT NULL,
+                    student_name TEXT,
+                    program TEXT,
+                    career TEXT,
+                    confidence TEXT DEFAULT '5',
+                    roadmap_status TEXT,
+                    followup_track TEXT,
+                    assessment_data TEXT,
+                    prep_notes TEXT,
+                    session_notes TEXT,
+                    student_next TEXT,
+                    mentor_follow TEXT,
+                    checked_tasks TEXT,
+                    current_task TEXT DEFAULT 'prepare',
+                    current_step INTEGER DEFAULT 0,
+                    civitas_recorded INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+            """)
             conn.commit()
     except Exception as e:
         print(f"[DB Init Error] {e}")
@@ -318,6 +343,353 @@ def delete_suggestion(suggestion_id: int) -> bool:
         cursor.execute("DELETE FROM suggestions WHERE id = ?", (suggestion_id,))
         conn.commit()
         return cursor.rowcount > 0
+
+
+# ==============================================================================
+# 2B. APPOINTMENTS & PREPARATION PERSISTENCE (SQLITE)
+# ==============================================================================
+
+def get_all_appointments() -> list[dict]:
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, student_email, student_name, program, career, confidence,
+                   roadmap_status, followup_track, assessment_data, prep_notes,
+                   current_task, current_step, civitas_recorded, created_at, updated_at
+            FROM appointments
+            ORDER BY updated_at DESC
+        """)
+        rows = [dict(r) for r in cursor.fetchall()]
+        for r in rows:
+            if r.get("assessment_data"):
+                try:
+                    r["assessment_data"] = json.loads(r["assessment_data"])
+                except Exception:
+                    pass
+        return rows
+
+
+def get_appointment_by_id(appointment_id: str) -> dict | None:
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM appointments WHERE id = ? OR student_email = ?", (appointment_id, appointment_id.lower()))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        data = dict(row)
+        if data.get("assessment_data"):
+            try:
+                data["assessment_data"] = json.loads(data["assessment_data"])
+            except Exception:
+                pass
+        if data.get("checked_tasks"):
+            try:
+                data["checked_tasks"] = json.loads(data["checked_tasks"])
+            except Exception:
+                data["checked_tasks"] = {}
+        return data
+
+
+def save_appointment(data: dict) -> dict:
+    now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+    app_id = str(data.get("id") or "").strip()
+    student_email = str(data.get("student_email") or "").strip().lower()
+    if not app_id:
+        email_prefix = re.sub(r'[^a-zA-Z0-9]', '-', (student_email or "student").split("@")[0])
+        app_id = f"appt-{email_prefix}-{secrets.token_hex(4)}"
+
+    student_name = str(data.get("student_name") or "").strip()
+    program = str(data.get("program") or "").strip()
+    career = str(data.get("career") or "").strip()
+    confidence = str(data.get("confidence") or "5").strip()
+    roadmap_status = str(data.get("roadmap_status") or "").strip()
+    followup_track = str(data.get("followup_track") or "").strip()
+
+    assessment_data = data.get("assessment_data")
+    if isinstance(assessment_data, (dict, list)):
+        assessment_data = json.dumps(assessment_data)
+    elif not isinstance(assessment_data, str):
+        assessment_data = ""
+
+    prep_notes = str(data.get("prep_notes") or "")
+    session_notes = str(data.get("session_notes") or "")
+    student_next = str(data.get("student_next") or "")
+    mentor_follow = str(data.get("mentor_follow") or "")
+
+    checked_tasks = data.get("checked_tasks")
+    if isinstance(checked_tasks, (dict, list)):
+        checked_tasks = json.dumps(checked_tasks)
+    elif not isinstance(checked_tasks, str):
+        checked_tasks = "{}"
+
+    current_task = str(data.get("current_task") or "prepare")
+    current_step = int(data.get("current_step") or 0)
+    civitas_recorded = 1 if data.get("civitas_recorded") else 0
+
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, created_at FROM appointments WHERE id = ?", (app_id,))
+        existing = cursor.fetchone()
+        if existing:
+            cursor.execute("""
+                UPDATE appointments SET
+                    student_email = ?, student_name = ?, program = ?, career = ?,
+                    confidence = ?, roadmap_status = ?, followup_track = ?,
+                    assessment_data = ?, prep_notes = ?, session_notes = ?,
+                    student_next = ?, mentor_follow = ?, checked_tasks = ?,
+                    current_task = ?, current_step = ?, civitas_recorded = ?,
+                    updated_at = ?
+                WHERE id = ?
+            """, (
+                student_email, student_name, program, career,
+                confidence, roadmap_status, followup_track,
+                assessment_data, prep_notes, session_notes,
+                student_next, mentor_follow, checked_tasks,
+                current_task, current_step, civitas_recorded,
+                now, app_id
+            ))
+        else:
+            cursor.execute("""
+                INSERT INTO appointments (
+                    id, student_email, student_name, program, career,
+                    confidence, roadmap_status, followup_track,
+                    assessment_data, prep_notes, session_notes,
+                    student_next, mentor_follow, checked_tasks,
+                    current_task, current_step, civitas_recorded,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                app_id, student_email, student_name, program, career,
+                confidence, roadmap_status, followup_track,
+                assessment_data, prep_notes, session_notes,
+                student_next, mentor_follow, checked_tasks,
+                current_task, current_step, civitas_recorded,
+                now, now
+            ))
+        conn.commit()
+
+    return get_appointment_by_id(app_id)
+
+
+def confirm_civitas_recorded(app_id: str) -> bool:
+    now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE appointments
+            SET civitas_recorded = 1, updated_at = ?
+            WHERE id = ?
+        """, (now, app_id))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def delete_appointment(app_id: str, force: bool = False) -> bool:
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        if not force:
+            cursor.execute("SELECT civitas_recorded FROM appointments WHERE id = ?", (app_id,))
+            row = cursor.fetchone()
+            if not row or not row[0]:
+                return False
+        cursor.execute("DELETE FROM appointments WHERE id = ?", (app_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+
+def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    """Extracts text from PDF bytes using PyMuPDF (fitz) if available, falling back to regex parsing."""
+    try:
+        import fitz
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        text_pages = [page.get_text() for page in doc]
+        doc.close()
+        full_text = "\n".join(text_pages).strip()
+        if full_text:
+            return full_text
+    except Exception:
+        pass
+
+    try:
+        raw = pdf_bytes.decode("latin1", errors="ignore")
+        strings = re.findall(r"\((.*?)\)Tj", raw)
+        if strings:
+            return " ".join(strings)
+    except Exception:
+        pass
+    return ""
+
+
+def parse_pathwayu_text(text: str) -> dict:
+    """Extracts student name, Holland code, interests, values, and assessment status."""
+    data = {
+        "student_name": "",
+        "holland_code": "",
+        "primary_interests": [],
+        "supporting_interests": [],
+        "primary_values": [],
+        "primary_workplace_preferences": [],
+        "completed_count": 0,
+        "total": 4,
+        "status": "incomplete",
+        "missing": []
+    }
+    if not text:
+        return data
+
+    name_match = re.search(r'^(?:[A-Z\s]+\n+)?([A-Z][a-z]+ [A-Z][a-z]+)\s*\n+PathwayU', text, re.MULTILINE)
+    if not name_match:
+        name_match = re.search(r'(?:pathway\s*u\s*\n+|ENSIGN COLLEGE\s*\n+)([A-Z][a-z]+ [A-Z][a-z]+)', text)
+    if name_match:
+        data["student_name"] = name_match.group(1).strip()
+
+    pi_m = re.search(r'Your primary Interests are\s+([A-Za-z]+)\s+and\s+([A-Za-z]+)', text, re.IGNORECASE)
+    primary_ints = [pi_m.group(1).capitalize(), pi_m.group(2).capitalize()] if pi_m else []
+    data["primary_interests"] = primary_ints
+
+    si_m = re.search(r'SUPPORTING INTERESTS\s*\n+([A-Za-z]+)', text, re.IGNORECASE)
+    supp_ints = [si_m.group(1).capitalize()] if si_m else []
+    data["supporting_interests"] = supp_ints
+
+    all_ints = primary_ints + supp_ints
+    if all_ints:
+        code_letters = "".join([i[0] for i in all_ints])
+        data["holland_code"] = f"{'-'.join(all_ints)} ({code_letters})"
+    else:
+        letters_match = re.search(r'\b([R|I|A|S|E|C]{2,3})\b', text)
+        data["holland_code"] = letters_match.group(1) if letters_match else "Not detected"
+
+    pv_m = re.search(r'Your primary Values are\s+([A-Za-z]+)\s+and\s+([A-Za-z]+)', text, re.IGNORECASE)
+    if pv_m:
+        data["primary_values"] = [pv_m.group(1).capitalize(), pv_m.group(2).capitalize()]
+
+    wp_m = re.search(r'Your primary Workplace Preferences are\s+([A-Za-z\s]+?)\s+and\s+([A-Za-z\s]+?)\.', text, re.IGNORECASE)
+    if wp_m:
+        data["primary_workplace_preferences"] = [wp_m.group(1).strip().capitalize(), wp_m.group(2).strip().capitalize()]
+
+    # Check for assessment presence in report text
+    completed = []
+    missing = []
+    for section in ["Interests", "Values", "Personality", "Workplace Preferences"]:
+        if section.lower() in text.lower():
+            completed.append(section)
+        else:
+            missing.append(section)
+    data["completed_count"] = len(completed)
+    data["missing"] = missing
+    data["status"] = "complete" if len(completed) == 4 else "incomplete"
+    return data
+
+
+def generate_career_guidance(student_name: str, program: str, career: str, assessment_data: dict | None = None) -> dict:
+    """Generates tailored guidance from PathwayU assessment results and student context."""
+    assessment_data = assessment_data or {}
+    holland_code = assessment_data.get("holland_code", "")
+    completed_count = assessment_data.get("completed_count", 0)
+    missing = assessment_data.get("missing", [])
+
+    name_str = f" for {student_name}" if student_name else ""
+    code_letters = re.findall(r'[RIASCE]', holland_code.upper())
+
+    trait_explanations = {
+        "S": "Social (helpers, communicators, teachers, mentors)",
+        "E": "Enterprising (persuaders, leaders, entrepreneurs, project drivers)",
+        "C": "Conventional (organizers, detail-oriented planners, data/systems analysts)",
+        "I": "Investigative (thinkers, researchers, problem solvers, engineers)",
+        "A": "Artistic (creators, visual/UI designers, expressive innovators)",
+        "R": "Realistic (builders, hands-on technologists, practical problem-solvers)",
+    }
+
+    major_alignments = {
+        "S": ["Medical Assisting", "Communication", "Integrated Studies (Healthcare/Education)"],
+        "E": ["Business Management", "Digital Marketing", "Entrepreneurship", "Professional Sales"],
+        "C": ["Accounting", "Project Management", "Administrative Support", "Finance"],
+        "I": ["Information Technology", "Cybersecurity", "Software Engineering", "Data Analytics"],
+        "A": ["Graphic Design", "Interior Design", "Digital Media", "Content Creation"],
+        "R": ["Network Engineering", "Computer Support Specialist", "Applied Technology"],
+    }
+
+    career_alignments = {
+        "S": ["Student Advisor", "Healthcare Coordinator", "Human Resources Specialist", "Community Outreach Manager"],
+        "E": ["Marketing Coordinator", "Operations Supervisor", "Account Executive", "Business Development Representative"],
+        "C": ["Financial Analyst", "Compliance Specialist", "Logistics Coordinator", "Database Administrator"],
+        "I": ["Systems Analyst", "Information Security Analyst", "Full Stack Web Developer", "Quality Assurance Analyst"],
+        "A": ["UI/UX Designer", "Brand Content Strategist", "Multimedia Artist", "Creative Director"],
+        "R": ["Cloud Support Associate", "Field Systems Technician", "Network Administrator", "Hardware Specialist"],
+    }
+
+    aligned_majors = []
+    aligned_careers = []
+    traits_described = []
+
+    for letter in (code_letters if code_letters else ["S", "E", "C"]):
+        if letter in trait_explanations:
+            traits_described.append(trait_explanations[letter])
+        if letter in major_alignments:
+            aligned_majors.extend(major_alignments[letter])
+        if letter in career_alignments:
+            aligned_careers.extend(career_alignments[letter])
+
+    aligned_majors = list(dict.fromkeys(aligned_majors))[:4]
+    aligned_careers = list(dict.fromkeys(aligned_careers))[:4]
+
+    guidance_sections = []
+
+    if completed_count == 4 or assessment_data.get("status") == "complete":
+        status_summary = "All four Career Explorer assessments (Interests, Values, Personality, Workplace Preferences) are complete."
+    elif completed_count > 0:
+        missing_str = ", ".join(missing) if missing else "remaining sections"
+        status_summary = f"{completed_count} of 4 assessments complete. Still needed: {missing_str}."
+    else:
+        status_summary = "PathwayU assessments have not yet been completed. Encourage the student to complete all four sections before or during this session."
+
+    guidance_sections.append({
+        "title": "Assessment Completion Status",
+        "content": status_summary
+    })
+
+    if traits_described:
+        guidance_sections.append({
+            "title": f"Holland Code Profile: {holland_code or 'Social-Enterprising-Conventional (SEC)'}",
+            "content": "• " + "\n• ".join(traits_described)
+        })
+
+    if aligned_majors:
+        guidance_sections.append({
+            "title": "Aligned Ensign College Majors",
+            "content": "• " + "\n• ".join(aligned_majors)
+        })
+
+    if aligned_careers:
+        guidance_sections.append({
+            "title": "Recommended Career Pathways",
+            "content": "• " + "\n• ".join(aligned_careers)
+        })
+
+    discussion_points = [
+        "Ask how their top interests connect to what they enjoy doing when solving problems or working with others.",
+        "Compare their stated career direction with their assessment results to identify natural strengths and confidence gaps.",
+        "Highlight how certificate courses in their major can lead to an internship and early professional momentum."
+    ]
+    if program:
+        discussion_points.append(f"Explore how their interest in {program} connects to specific industry projects and CAR 398/399/499 internships.")
+
+    guidance_sections.append({
+        "title": "Recommended Appointment Discussion Strategy",
+        "content": "• " + "\n• ".join(discussion_points)
+    })
+
+    return {
+        "status": "ok",
+        "summary": f"Personalized Career Explorer Guidance{name_str}",
+        "sections": guidance_sections,
+        "holland_code": holland_code or "SEC",
+        "aligned_majors": aligned_majors,
+        "aligned_careers": aligned_careers
+    }
+
 
 # ==============================================================================
 # 3. COACH SYSTEM PROMPT & PERSONA
@@ -725,6 +1097,28 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 self._json({"error": "Failed to retrieve suggestions."}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
+        if clean_path == "/api/appointments":
+            try:
+                appointments = get_all_appointments()
+                self._json({"status": "ok", "appointments": appointments})
+            except Exception as e:
+                print(f"[Appointments GET error] {e}")
+                self._json({"error": "Failed to fetch appointments."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if clean_path == "/api/appointments/get":
+            query = parse_qs(urlparse(self.path).query)
+            app_id = query.get("id", [""])[0].strip()
+            if not app_id:
+                self._json({"error": "Missing appointment id."}, HTTPStatus.BAD_REQUEST)
+                return
+            appointment = get_appointment_by_id(app_id)
+            if not appointment:
+                self._json({"error": "Appointment not found."}, HTTPStatus.NOT_FOUND)
+                return
+            self._json({"status": "ok", "appointment": appointment})
+            return
+
         super().do_GET()
 
     def do_POST(self):
@@ -819,6 +1213,131 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 "error": HTTPStatus.BAD_GATEWAY,
             }.get(result.get("status"), HTTPStatus.OK)
             self._json(result, response_status)
+            return
+
+        # ----------------------------------------------------------------------
+        # Appointments Endpoints (Multi-student persistence & Civitas lifecycle)
+        # ----------------------------------------------------------------------
+        if self.path == "/api/appointments/save":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                saved = save_appointment(data)
+                self._json({"status": "ok", "appointment": saved})
+            except Exception as e:
+                print(f"[Save Appointment Error] {e}")
+                self._json({"error": "Failed to save appointment."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if self.path == "/api/appointments/civitas-confirm":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            app_id = str(data.get("id", "")).strip()
+            if not app_id:
+                self._json({"error": "Missing appointment id."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            success = confirm_civitas_recorded(app_id)
+            if success:
+                self._json({"status": "ok", "message": "Civitas recording confirmed."})
+            else:
+                self._json({"error": "Appointment not found."}, HTTPStatus.NOT_FOUND)
+            return
+
+        if self.path == "/api/appointments/delete":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            app_id = str(data.get("id", "")).strip()
+            force = bool(data.get("force", False))
+            if not app_id:
+                self._json({"error": "Missing appointment id."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            appt = get_appointment_by_id(app_id)
+            if not appt:
+                self._json({"error": "Appointment not found."}, HTTPStatus.NOT_FOUND)
+                return
+
+            if not force and not appt.get("civitas_recorded"):
+                self._json({
+                    "error": "Appointment cannot be deleted until recording in Civitas is confirmed.",
+                    "civitas_recorded": False
+                }, HTTPStatus.BAD_REQUEST)
+                return
+
+            deleted = delete_appointment(app_id, force=True)
+            if deleted:
+                self._json({"status": "ok", "message": "Appointment record deleted successfully."})
+            else:
+                self._json({"error": "Failed to delete appointment."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        # ----------------------------------------------------------------------
+        # Career Explorer Guidance Endpoint
+        # ----------------------------------------------------------------------
+        if self.path == "/api/career-explorer/guidance":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            student_name = str(data.get("student_name", "")).strip()
+            program = str(data.get("program", "")).strip()
+            career = str(data.get("career", "")).strip()
+            assessment_data = data.get("assessment_data") or {}
+
+            guidance = generate_career_guidance(student_name, program, career, assessment_data)
+            self._json(guidance)
+            return
+
+        # ----------------------------------------------------------------------
+        # Career Explorer PDF Upload & Parse Endpoint
+        # ----------------------------------------------------------------------
+        if self.path == "/api/career-explorer/parse-pdf":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                raw_body = self.rfile.read(content_length).decode("utf-8")
+                data = json.loads(raw_body)
+            except Exception:
+                self._json({"error": "Invalid JSON payload."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            pdf_base64 = data.get("pdf_base64", "")
+            if not pdf_base64:
+                self._json({"error": "Missing pdf_base64 data."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            try:
+                if "," in pdf_base64:
+                    pdf_base64 = pdf_base64.split(",", 1)[1]
+                pdf_bytes = base64.b64decode(pdf_base64)
+                extracted_text = extract_text_from_pdf(pdf_bytes)
+                parsed = parse_pathwayu_text(extracted_text)
+                self._json({"status": "ok", "data": parsed, "extracted_length": len(extracted_text)})
+            except Exception as e:
+                print(f"[PDF Parse Error] {e}")
+                self._json({"error": f"Failed to parse PDF report: {e}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 
         # Suggestion Submission Endpoint (Public, Rate-limited, Privacy-checked)

@@ -26,8 +26,19 @@
           <span class="brand-mark" aria-hidden="true">E</span>
           <span class="brand-copy"><strong>ENS 101</strong><small>Mentor Desk</small></span>
         </a>
+        <div class="active-student-bar">
+          <div class="student-select-group">
+            <label for="student-switcher" class="student-switcher-label">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Student:</span>
+            </label>
+            <select id="student-switcher" class="student-select">
+              <option value="">+ New Student (Start Prep)</option>
+            </select>
+          </div>
+        </div>
         <nav class="top-nav" aria-label="Main navigation">
-          <button class="top-nav-button active" data-view="appointment" type="button">Appointment</button>
+          <button class="top-nav-button active" data-view="appointment" type="button">Tasks</button>
           <button class="top-nav-button" data-view="resources" type="button">Resources</button>
         </nav>
         <div class="top-actions">
@@ -48,9 +59,9 @@
             <span id="ai-engine-name">Qwen Local</span>
           </div>
           <span class="autosave-status"><span class="status-dot"></span><span id="save-status">Saved locally</span></span>
-          <button id="new-appointment" class="button ghost" type="button">
+          <button id="new-appointment" class="button ghost" type="button" title="Start preparing a new student">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            New appointment
+            <span>New Student</span>
           </button>
         </div>
       </header>
@@ -58,8 +69,8 @@
       <div class="workspace">
         <aside class="workflow-sidebar" aria-label="Appointment workflow">
           <div class="sidebar-heading">
-            <p class="eyebrow appointment-label">APPOINTMENT 1a GUIDE</p>
-            <div class="progress-row"><strong id="progress-label">0% complete</strong><span id="progress-count">0 of 23</span></div>
+            <p class="eyebrow appointment-label">TASKS</p>
+            <div class="progress-row"><strong id="progress-label">0% complete</strong><span id="progress-count">0 of 8</span></div>
             <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
           </div>
           <nav id="workflow-nav" class="workflow-nav"></nav>
@@ -72,79 +83,344 @@
         <main class="main-area">
           <section id="appointment-view" class="view active" aria-label="Appointment workspace">
             <div class="page-heading">
-              <div><p class="eyebrow appointment-label">ENS 101 · APPOINTMENT 1a</p><h1 id="step-title">Begin the appointment</h1><p id="step-description" class="page-description"></p></div>
+              <div><p id="step-eyebrow" class="eyebrow appointment-label">TASK 1: PREPARE · STEP 1 OF 3</p><h1 id="step-title">Determine Assessment Completion</h1><p id="step-description" class="page-description"></p></div>
               <span id="step-duration" class="duration-chip"></span>
             </div>
 
-            <section id="session-details-card" class="student-card card" aria-labelledby="student-heading">
-              <div class="section-heading compact">
-                <div><p class="eyebrow">Session details</p><h2 id="student-heading">Who are you meeting?</h2></div>
-                <span class="optional-label">Non-sensitive details only</span>
-              </div>
-              <div class="student-fields">
-                <label><span>Preferred name</span><input id="student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
-                <label><span>Major or program</span><input id="student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
-                <label><span>Career direction</span><input id="career-direction" type="text" autocomplete="off" placeholder="e.g., UX designer" maxlength="100" /></label>
-                <label class="confidence-field"><span>Career confidence: <output id="confidence-output" for="career-confidence">5</output>/10</span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
-                <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
-                <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
-              </div>
-              <section class="career-lookup" aria-label="Major &amp; Career Explorer Lookup">
-                <div class="career-lookup-heading">
-                  <div>
-                    <p class="eyebrow">Major &amp; Career Explorer Lookup</p>
+            <!-- TASK 1: PREPARE WORKSPACE -->
+            <div id="task1-prepare-workspace" class="task-workspace">
+              <!-- Step 1: Check Assessment -->
+              <section id="prep-step-1" class="prep-step-container">
+                <div class="card prep-card">
+                  <div class="section-heading compact">
+                    <div>
+                      <p class="eyebrow">Student Profile &amp; PathwayU Lookup</p>
+                      <h2>Step 1: Check Major &amp; Career Explorer Assessment (PathwayU)</h2>
+                    </div>
+                    <div class="career-session-controls">
+                      <span id="prep-career-session-status" class="career-session-status">Checking access…</span>
+                      <button id="prep-career-auth-btn" class="button secondary small" type="button" hidden>Authenticate PathwayU</button>
+                    </div>
                   </div>
-                  <div class="career-session-controls">
-                    <span id="career-session-status" class="career-session-status">Checking access…</span>
-                    <button id="career-auth-button" class="button secondary small" type="button" hidden>Authenticate PathwayU</button>
+
+                  <div class="student-fields">
+                    <label><span>Preferred name</span><input id="prep-student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
+                    <label>
+                      <span>Student @ensign.edu email <span class="required-star">*</span></span>
+                      <input id="prep-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" />
+                    </label>
+                    <label><span>Major or program</span><input id="prep-student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
+                    <label><span>Career direction</span><input id="prep-career-direction" type="text" autocomplete="off" placeholder="e.g., Full Stack Web Developer" maxlength="100" /></label>
+                    <label class="confidence-field"><span>Career confidence: <output id="prep-confidence-output" for="prep-career-confidence">5</output>/10</span><input id="prep-career-confidence" type="range" min="1" max="10" value="5" /></label>
+                    <div class="prep-lookup-action">
+                      <span>&nbsp;</span>
+                      <button id="prep-career-lookup-btn" class="button primary" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                        <span>Check PathwayU Completion</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <p class="career-lookup-privacy">Student record and notes persist locally until the appointment is completed and confirmed recorded in Civitas.</p>
+
+                  <div id="prep-lookup-feedback" class="lookup-feedback-banner" hidden></div>
+
+                  <!-- 4 Assessment Cards Grid -->
+                  <div class="prep-assessment-section">
+                    <div class="prep-subheading">
+                      <h3>PathwayU Assessment Modules</h3>
+                      <span id="prep-completion-count" class="count-badge">0 of 4 complete</span>
+                    </div>
+                    <div class="assessment-cards-grid">
+                      <div id="card-interests" class="assessment-module-card">
+                        <div class="module-header">
+                          <span class="module-icon">🎯</span>
+                          <strong>Interests</strong>
+                        </div>
+                        <span class="module-status-badge pending">Not checked</span>
+                        <p class="module-subtext">Holland Code (RIASEC)</p>
+                      </div>
+                      <div id="card-values" class="assessment-module-card">
+                        <div class="module-header">
+                          <span class="module-icon">⚖️</span>
+                          <strong>Values</strong>
+                        </div>
+                        <span class="module-status-badge pending">Not checked</span>
+                        <p class="module-subtext">Core Motivations</p>
+                      </div>
+                      <div id="card-personality" class="assessment-module-card">
+                        <div class="module-header">
+                          <span class="module-icon">💡</span>
+                          <strong>Personality</strong>
+                        </div>
+                        <span class="module-status-badge pending">Not checked</span>
+                        <p class="module-subtext">Work Traits</p>
+                      </div>
+                      <div id="card-workplace" class="assessment-module-card">
+                        <div class="module-header">
+                          <span class="module-icon">🏢</span>
+                          <strong>Workplace Preferences</strong>
+                        </div>
+                        <span class="module-status-badge pending">Not checked</span>
+                        <p class="module-subtext">Environment Fit</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- PDF Upload Fallback Dropzone -->
+                  <div class="prep-pdf-section">
+                    <div id="prep-pdf-dropzone" class="prep-pdf-dropzone">
+                      <svg class="dropzone-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12"/><line x1="15" y1="15" x2="12" y2="12"/></svg>
+                      <div class="dropzone-copy">
+                        <strong>Or Drag &amp; Drop Student's Career Explorer PDF Report Here</strong>
+                        <span>Drop the downloaded PathwayU PDF report, or <label for="prep-pdf-input" class="browse-link">browse file</label></span>
+                      </div>
+                      <input type="file" id="prep-pdf-input" accept="application/pdf" class="sr-only" />
+                    </div>
+                    <div id="prep-pdf-status" class="prep-pdf-status" hidden></div>
+                  </div>
+
+                  <div class="step-actions">
+                    <div></div>
+                    <button id="btn-prep-to-step2" class="button primary" type="button">Continue to Step 2: Read Guidance →</button>
                   </div>
                 </div>
-                <form id="career-lookup-form" class="career-lookup-form">
-                  <label for="career-student-email">
-                    <span>Student @ensign.edu email</span>
-                    <input id="career-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" aria-describedby="career-lookup-privacy" />
-                  </label>
-                  <button id="career-lookup-button" class="button primary" type="submit">Check completion</button>
-                </form>
-                <p id="career-lookup-privacy" class="career-lookup-privacy">Used only for this lookup. The email is not saved in the appointment or included in notes.</p>
-                <div id="career-lookup-result" class="career-lookup-result" role="status" aria-live="polite" hidden></div>
               </section>
-              <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
-            </section>
 
-            <div class="appointment-grid">
-              <section class="task-card card" aria-labelledby="task-heading">
-                <div class="section-heading">
-                  <div><p id="step-kicker" class="eyebrow"></p><h2 id="task-heading">Appointment tasks</h2></div>
-                  <span id="step-task-count" class="count-badge"></span>
+              <!-- Step 2: Read Guidance -->
+              <section id="prep-step-2" class="prep-step-container" hidden>
+                <div class="card prep-card">
+                  <div class="section-heading compact">
+                    <div>
+                      <p class="eyebrow">Personalized Insights</p>
+                      <h2>Step 2: Read Generated Career Explorer Guidance</h2>
+                    </div>
+                    <button id="btn-copy-guidance-notes" class="button secondary small" type="button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                      <span>Copy Guidance to Prep Notes</span>
+                    </button>
+                  </div>
+
+                  <!-- Holland Code Profile Banner -->
+                  <div class="guidance-profile-banner">
+                    <div class="profile-pill-wrap">
+                      <span class="profile-label">Holland Code Profile</span>
+                      <strong id="guidance-holland-code" class="profile-code">Social-Enterprising-Conventional (SEC)</strong>
+                    </div>
+                    <div id="guidance-traits-list" class="profile-traits">
+                      <span class="trait-tag">Social (Helpers, communicators, mentors)</span>
+                      <span class="trait-tag">Enterprising (Leaders, project drivers)</span>
+                      <span class="trait-tag">Conventional (Organizers, detail-oriented planners)</span>
+                    </div>
+                  </div>
+
+                  <div class="guidance-grid">
+                    <div class="guidance-card">
+                      <div class="guidance-card-header">
+                        <span class="guidance-card-icon">🎓</span>
+                        <h3>Aligned Ensign College Majors</h3>
+                      </div>
+                      <ul id="guidance-majors-list" class="guidance-list">
+                        <li>Business Management</li>
+                        <li>Digital Marketing</li>
+                        <li>Information Technology</li>
+                        <li>Communication</li>
+                      </ul>
+                    </div>
+
+                    <div class="guidance-card">
+                      <div class="guidance-card-header">
+                        <span class="guidance-card-icon">💼</span>
+                        <h3>Recommended Career Pathways</h3>
+                      </div>
+                      <ul id="guidance-careers-list" class="guidance-list">
+                        <li>Student Advisor &amp; Coordinator</li>
+                        <li>Marketing Coordinator</li>
+                        <li>Operations Specialist</li>
+                        <li>Project Assistant</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div class="guidance-card strategy-card">
+                    <div class="guidance-card-header">
+                      <span class="guidance-card-icon">💬</span>
+                      <h3>Recommended Appointment Discussion Strategy</h3>
+                    </div>
+                    <ul id="guidance-strategy-list" class="guidance-list">
+                      <li>Ask how their top interests connect to what they enjoy doing when solving problems or working with others.</li>
+                      <li>Compare their stated career direction with their assessment results to identify natural strengths and confidence gaps.</li>
+                      <li>Highlight how certificate courses in their major can lead to an internship and early professional momentum.</li>
+                    </ul>
+                  </div>
+
+                  <div class="step-actions">
+                    <button id="btn-guidance-back" class="button secondary" type="button">← Back to Assessment</button>
+                    <button id="btn-guidance-to-step3" class="button primary" type="button">Continue to Step 3: Type Prep Notes →</button>
+                  </div>
                 </div>
-                <div id="task-list" class="task-list"></div>
-                <div class="step-actions"><button id="previous-step" class="button secondary" type="button">Previous</button><button id="next-step" class="button primary" type="button">Continue</button></div>
               </section>
 
-              <aside class="support-column">
-                <section class="prompt-card card">
-                  <div class="section-heading compact"><div><p class="eyebrow">Conversation support</p><h2>Try asking</h2></div><span class="sparkle" aria-hidden="true">✦</span></div>
-                  <div id="conversation-prompts" class="prompt-list"></div>
-                </section>
-                <section class="quick-tools card">
-                  <div class="section-heading compact"><div><p class="eyebrow">Quick access</p><h2>Open a tool</h2></div><button class="text-button" data-view-jump="resources" type="button">View all</button></div>
-                  <div id="quick-tool-list" class="quick-tool-list"></div>
-                </section>
-              </aside>
+              <!-- Step 3: Type Prep Notes -->
+              <section id="prep-step-3" class="prep-step-container" hidden>
+                <div class="card prep-card">
+                  <div class="section-heading compact">
+                    <div>
+                      <p class="eyebrow">Mentor Workspace</p>
+                      <h2>Step 3: Type Appointment Preparation Notes</h2>
+                    </div>
+                    <span class="autosave-status"><span class="status-dot"></span><span>Auto-saving to record</span></span>
+                  </div>
+
+                  <div id="prep-student-recap" class="prep-student-recap">
+                    <span class="recap-item"><strong>Student:</strong> <span id="recap-name">Jordan Taylor</span></span>
+                    <span class="recap-item"><strong>Email:</strong> <span id="recap-email">jordan.taylor@ensign.edu</span></span>
+                    <span class="recap-item"><strong>Major:</strong> <span id="recap-program">Software Engineering</span></span>
+                    <span class="recap-item"><strong>Career:</strong> <span id="recap-career">Full Stack Web Developer</span></span>
+                    <span class="recap-item"><strong>PathwayU:</strong> <span id="recap-pathwayu">Completed</span></span>
+                  </div>
+
+                  <div class="prep-notes-editor">
+                    <label for="prep-notes-textarea">
+                      <span>Appointment Preparation Notes &amp; Discussion Goals</span>
+                      <textarea id="prep-notes-textarea" rows="8" placeholder="Type notes to use on the appointment: talking points, specific questions for this student, reminders about CAR 201 or Ensign Connect, follow-up items..."></textarea>
+                    </label>
+                  </div>
+
+                  <div class="prep-prompts-card">
+                    <div class="prep-prompts-title">
+                      <span>✦</span>
+                      <strong>Quick Talking Points (click to add to notes):</strong>
+                    </div>
+                    <div id="prep-quick-prompts" class="prep-prompts-list">
+                      <button type="button" class="prompt-chip" data-prompt="Ask about their Career Explorer results and what surprised them.">Ask about assessment results</button>
+                      <button type="button" class="prompt-chip" data-prompt="Discuss taking CAR 201 next semester to prepare for internships.">CAR 201 preparation timeline</button>
+                      <button type="button" class="prompt-chip" data-prompt="Encourage joining their major group in Ensign Connect and messaging an alumnus.">Ensign Connect major group</button>
+                      <button type="button" class="prompt-chip" data-prompt="Check career confidence scale (1-10) and clarify exploration vs resume need.">Assess 1-10 career confidence</button>
+                    </div>
+                  </div>
+
+                  <div class="step-actions">
+                    <button id="btn-notes-back" class="button secondary" type="button">← Back to Guidance</button>
+                    <button id="btn-start-task2" class="button primary start-appt-btn" type="button">
+                      <span>Begin Task 2: Appointment →</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
             </div>
 
-            <section class="notes-card card" aria-labelledby="notes-heading">
-              <div class="section-heading">
-                  <div><p class="eyebrow">Appointment record</p><h2 id="notes-heading">Notes & agreed next steps</h2></div>
-                <div class="notes-actions"><button id="copy-summary" class="button secondary small" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy summary</button></div>
+            <!-- TASK 2: APPOINTMENT WORKSPACE -->
+            <div id="task2-appointment-workspace" class="task-workspace" hidden>
+              <section id="session-details-card" class="student-card card" aria-labelledby="student-heading">
+                <div class="section-heading compact">
+                  <div><p class="eyebrow">Session details</p><h2 id="student-heading">Who are you meeting?</h2></div>
+                  <span class="optional-label">Non-sensitive details only</span>
+                </div>
+                <div class="student-fields">
+                  <label><span>Preferred name</span><input id="student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
+                  <label><span>Major or program</span><input id="student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
+                  <label><span>Career direction</span><input id="career-direction" type="text" autocomplete="off" placeholder="e.g., UX designer" maxlength="100" /></label>
+                  <label class="confidence-field"><span>Career confidence: <output id="confidence-output" for="career-confidence">5</output>/10</span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
+                  <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
+                  <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
+                </div>
+                <section class="career-lookup" aria-label="Major &amp; Career Explorer Lookup">
+                  <div class="career-lookup-heading">
+                    <div>
+                      <p class="eyebrow">Major &amp; Career Explorer Lookup</p>
+                    </div>
+                    <div class="career-session-controls">
+                      <span id="career-session-status" class="career-session-status">Checking access…</span>
+                      <button id="career-auth-button" class="button secondary small" type="button" hidden>Authenticate PathwayU</button>
+                    </div>
+                  </div>
+                  <form id="career-lookup-form" class="career-lookup-form">
+                    <label for="career-student-email">
+                      <span>Student @ensign.edu email</span>
+                      <input id="career-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" aria-describedby="career-lookup-privacy" />
+                    </label>
+                    <button id="career-lookup-button" class="button primary" type="submit">Check completion</button>
+                  </form>
+                  <p id="career-lookup-privacy" class="career-lookup-privacy">Student record and notes persist locally until the appointment is completed and confirmed recorded in Civitas.</p>
+                  <div id="career-lookup-result" class="career-lookup-result" role="status" aria-live="polite" hidden></div>
+                </section>
+                <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
+              </section>
+
+              <div class="appointment-grid">
+                <section class="task-card card" aria-labelledby="task-heading">
+                  <div class="section-heading">
+                    <div><p id="step-kicker" class="eyebrow"></p><h2 id="task-heading">Appointment tasks</h2></div>
+                    <span id="step-task-count" class="count-badge"></span>
+                  </div>
+                  <div id="task-list" class="task-list"></div>
+                  <div class="step-actions"><button id="previous-step" class="button secondary" type="button">Previous</button><button id="next-step" class="button primary" type="button">Continue</button></div>
+                </section>
+
+                <aside class="support-column">
+                  <section class="prompt-card card">
+                    <div class="section-heading compact"><div><p class="eyebrow">Conversation support</p><h2>Try asking</h2></div><span class="sparkle" aria-hidden="true">✦</span></div>
+                    <div id="conversation-prompts" class="prompt-list"></div>
+                  </section>
+                  <section class="quick-tools card">
+                    <div class="section-heading compact"><div><p class="eyebrow">Quick access</p><h2>Open a tool</h2></div><button class="text-button" data-view-jump="resources" type="button">View all</button></div>
+                    <div id="quick-tool-list" class="quick-tool-list"></div>
+                  </section>
+                </aside>
               </div>
-              <div class="notes-grid">
-                <label><span>Conversation notes</span><textarea id="session-notes" rows="5" placeholder="Capture useful, non-sensitive themes from the conversation."></textarea></label>
-                <label><span>Student’s next step</span><textarea id="student-next-step" rows="5" placeholder="What will the student do, and by when?"></textarea></label>
-                <label><span>Mentor follow-up</span><textarea id="mentor-follow-up" rows="5" placeholder="What will you send, check, or follow up on?"></textarea></label>
+
+              <!-- Prep Notes Accordion (Accessible in Task 2) -->
+              <div class="prep-notes-preview-wrap card">
+                <button id="btn-toggle-prep-preview" class="prep-preview-toggle" type="button">
+                  <span class="toggle-icon">📋</span>
+                  <span><strong>Reference Task 1 Prep Notes:</strong> <small id="prep-preview-snippet">Click to expand notes prepared for this student</small></span>
+                  <span id="prep-preview-chevron" class="chevron-down">▼</span>
+                </button>
+                <div id="prep-preview-content" class="prep-preview-body" hidden>
+                  <div id="prep-preview-text" class="prep-preview-text">No prep notes recorded.</div>
+                </div>
               </div>
-            </section>
+
+              <section class="notes-card card" aria-labelledby="notes-heading">
+                <div class="section-heading">
+                    <div><p class="eyebrow">Appointment record</p><h2 id="notes-heading">Notes &amp; agreed next steps</h2></div>
+                  <div class="notes-actions"><button id="copy-summary" class="button secondary small" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy summary</button></div>
+                </div>
+                <div class="notes-grid">
+                  <label><span>Conversation notes</span><textarea id="session-notes" rows="5" placeholder="Capture useful, non-sensitive themes from the conversation."></textarea></label>
+                  <label><span>Student’s next step</span><textarea id="student-next-step" rows="5" placeholder="What will the student do, and by when?"></textarea></label>
+                  <label><span>Mentor follow-up</span><textarea id="mentor-follow-up" rows="5" placeholder="What will you send, check, or follow up on?"></textarea></label>
+                </div>
+              </section>
+
+              <!-- Step 5 Civitas Recording & Deletion Card -->
+              <section id="civitas-card" class="civitas-card card" hidden>
+                <div class="civitas-header">
+                  <div class="civitas-title-group">
+                    <span class="civitas-badge">CIVITAS</span>
+                    <div>
+                      <h2>Log Appointment &amp; Complete Session</h2>
+                      <p>Copy the formatted appointment record into Civitas. Once recorded, confirm below to delete the student's personal information from this machine.</p>
+                    </div>
+                  </div>
+                  <button id="btn-copy-civitas" class="button secondary small" type="button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                    <span>Copy Civitas Note</span>
+                  </button>
+                </div>
+                <div class="civitas-confirmation-box">
+                  <label class="civitas-checkbox-label">
+                    <input type="checkbox" id="civitas-confirm-checkbox" />
+                    <span><strong>I confirm this appointment has been recorded in Civitas</strong> — The student's information and session notes can now be safely deleted from this workstation.</span>
+                  </label>
+                  <button id="btn-complete-delete-record" class="button danger" type="button" disabled>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    <span>Complete &amp; Delete Student Record</span>
+                  </button>
+                </div>
+              </section>
+            </div>
           </section>
 
           <section id="resources-view" class="view" aria-label="Resource library">
