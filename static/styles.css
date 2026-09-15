@@ -60,6 +60,25 @@ svg { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-wi
 .nav-header-btn svg { width: 14px; height: 14px; color: var(--gold); }
 .button.danger { color: #fff; background: var(--red); }
 .button.small { min-height: 36px; padding: 7px 12px; font-size: 12px; }
+.button:disabled,
+.button[disabled] {
+  opacity: 0.42;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: grayscale(0.25);
+  pointer-events: auto !important;
+}
+.button:disabled:hover,
+.button[disabled]:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+.button.primary:disabled,
+.button.primary[disabled] {
+  background: var(--navy-800) !important;
+  color: #fff !important;
+}
 
 /* AI Engine indicator in topbar */
 .engine-indicator-pill {
@@ -173,17 +192,76 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--n
 .career-lookup { margin-top: 17px; padding: 15px; border: 1px solid #d8e3e9; border-radius: 10px; background: #f8fbfc; }
 .career-lookup-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .career-lookup-heading h3 { margin: 2px 0 0; color: var(--navy-950); font-size: 14px; }
-.career-session-controls { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
-.auth-control-item { display: flex; align-items: center; gap: 8px; }
+.career-session-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.auth-control-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: #f8fafc;
+  border: 1px solid #d8e3ea;
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  transition: all .16s ease;
+}
+.auth-control-item:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+}
 .career-session-controls .button[hidden] { display: none; }
-.career-session-status { color: var(--muted); font-size: 10.5px; font-weight: 750; }
-.career-session-status.ready { color: var(--green); }
-.career-session-status.warning { color: #8a5c08; }
+.career-session-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.career-session-status::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+.career-session-status.ready {
+  color: #166534;
+}
+.career-session-status.ready::before {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+.career-session-status.warning {
+  color: #92400e;
+}
+.career-session-status.warning::before {
+  background: #d97706;
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
+}
+.auth-control-item .auth-btn {
+  min-height: 24px;
+  height: 24px;
+  padding: 0 10px;
+  font-size: 10.5px;
+  font-weight: 750;
+  border-radius: 12px;
+  white-space: nowrap;
+  line-height: 1;
+}
 
 /* B5: Pulsing Auth Button */
 @keyframes authGlowPulse {
-  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.7); transform: scale(1); }
-  50% { box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); transform: scale(1.02); }
+  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6); transform: scale(1); }
+  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); transform: scale(1.02); }
   100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); transform: scale(1); }
 }
 .auth-btn.auth-pulse {
@@ -260,7 +338,8 @@ input.required-incomplete {
 .task-action:hover { color: #fff; border-color: var(--navy-700); background: var(--navy-700); }
 .task-action svg { width: 12px; height: 12px; }
 .task-item.checked .task-copy strong { color: #66746e; text-decoration: line-through; }
-.step-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 19px; padding-top: 17px; border-top: 1px solid var(--line); }
+.step-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 19px; padding-top: 17px; border-top: 1px solid var(--line); }
+.step-actions-end { justify-content: flex-end; }
 .step-actions .button { min-width: 102px; }
 .support-column { display: grid; gap: 20px; }
 .prompt-card, .quick-tools { padding: 19px; }
@@ -456,14 +535,51 @@ input.required-incomplete {
   padding: 24px;
   margin-bottom: 22px;
 }
-.prep-lookup-action {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+.prep-student-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 18px;
 }
-.prep-lookup-action .button {
-  height: 42px;
+.field-label-wrap {
+  display: flex !important;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.field-label-wrap > span {
+  display: inline;
+  margin-bottom: 0;
+}
+.field-label-wrap .field-error-msg {
+  display: inline;
+  margin-top: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #dc2626;
+}
+.prep-lookup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+.prep-lookup-bar .career-lookup-privacy {
+  margin: 0;
+  color: #64748b;
+  font-size: 11.5px;
+  line-height: 1.45;
+  max-width: 520px;
+}
+.prep-lookup-bar .prep-check-btn {
+  flex-shrink: 0;
   white-space: nowrap;
+  padding: 9px 18px;
+  font-size: 12.5px;
+  font-weight: 750;
+  box-shadow: 0 2px 8px rgba(20, 40, 61, 0.12);
 }
 .lookup-feedback-banner {
   margin-top: 14px;
@@ -936,6 +1052,9 @@ input.required-incomplete {
   .duration-chip { display: none; }
   .student-card, .task-card, .notes-card { padding: 17px; }
   .student-fields { grid-template-columns: 1fr; }
+  .prep-student-fields { grid-template-columns: 1fr; }
+  .prep-lookup-bar { flex-direction: column-reverse; align-items: stretch; gap: 12px; }
+  .prep-lookup-bar .prep-check-btn { width: 100%; justify-content: center; }
   .career-lookup-heading { align-items: flex-start; flex-direction: column; }
   .career-session-controls { width: 100%; justify-content: space-between; }
   .career-lookup-form { grid-template-columns: 1fr; }
