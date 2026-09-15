@@ -77,8 +77,20 @@ except ImportError:
     check_admin_session = None
     lookup_student_completion = None
 
+try:
+    from ensign_connect_client import (
+        check_connect_session,
+        lookup_student_connect,
+    )
+    HAVE_CONNECT_LOOKUP = True
+except ImportError:
+    check_connect_session = None
+    lookup_student_connect = None
+    HAVE_CONNECT_LOOKUP = False
+
 ENSIGN_EMAIL_PATTERN = re.compile(r"^[^@\s]+@ensign\.edu$", re.IGNORECASE)
 PATHWAYU_LOGIN_PROCESS = None
+CONNECT_LOGIN_PROCESS = None
 
 # ==============================================================================
 # 2. LOCAL FEEDBACK & SUGGESTIONS DATABASE (SQLITE) & ADMIN CREDENTIALS
@@ -243,10 +255,24 @@ def init_db():
                     current_task TEXT DEFAULT 'prepare',
                     current_step INTEGER DEFAULT 0,
                     civitas_recorded INTEGER DEFAULT 0,
+                    ensign_connect_status TEXT,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS ensign_connect_cache (
+                    student_email TEXT PRIMARY KEY,
+                    has_account INTEGER NOT NULL,
+                    profile_url TEXT,
+                    checked_at TEXT NOT NULL
+                )
+            """)
+            # Safe migration for existing DB without dropping table
+            cursor = conn.execute("PRAGMA table_info(appointments)")
+            cols = [row[1] for row in cursor.fetchall()]
+            if "ensign_connect_status" not in cols:
+                conn.execute("ALTER TABLE appointments ADD COLUMN ensign_connect_status TEXT")
             conn.commit()
     except Exception as e:
         print(f"[DB Init Error] {e}")
@@ -356,7 +382,8 @@ def get_all_appointments() -> list[dict]:
         cursor.execute("""
             SELECT id, student_email, student_name, program, career, confidence,
                    roadmap_status, followup_track, assessment_data, prep_notes,
-                   current_task, current_step, civitas_recorded, created_at, updated_at
+                   current_task, current_step, civitas_recorded, ensign_connect_status,
+                   created_at, updated_at
             FROM appointments
             ORDER BY updated_at DESC
         """)
@@ -365,6 +392,11 @@ def get_all_appointments() -> list[dict]:
             if r.get("assessment_data"):
                 try:
                     r["assessment_data"] = json.loads(r["assessment_data"])
+                except Exception:
+                    pass
+            if r.get("ensign_connect_status"):
+                try:
+                    r["ensign_connect_status"] = json.loads(r["ensign_connect_status"])
                 except Exception:
                     pass
         return rows
@@ -384,12 +416,45 @@ def get_appointment_by_id(appointment_id: str) -> dict | None:
                 data["assessment_data"] = json.loads(data["assessment_data"])
             except Exception:
                 pass
+        if data.get("ensign_connect_status"):
+            try:
+                data["ensign_connect_status"] = json.loads(data["ensign_connect_status"])
+            except Exception:
+                pass
         if data.get("checked_tasks"):
             try:
                 data["checked_tasks"] = json.loads(data["checked_tasks"])
             except Exception:
                 data["checked_tasks"] = {}
         return data
+
+
+def get_ensign_connect_cache(email: str) -> dict | None:
+    normalized = email.strip().lower()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM ensign_connect_cache WHERE student_email = ?", (normalized,))
+        row = cursor.fetchone()
+        if row:
+            return dict(row)
+        return None
+
+
+def set_ensign_connect_cache(email: str, has_account: bool, profile_url: str = None) -> dict:
+    normalized = email.strip().lower()
+    now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("""
+            INSERT INTO ensign_connect_cache (student_email, has_account, profile_url, checked_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(student_email) DO UPDATE SET
+                has_account = excluded.has_account,
+                profile_url = excluded.profile_url,
+                checked_at = excluded.checked_at
+        """, (normalized, 1 if has_account else 0, profile_url, now))
+        conn.commit()
+    return {"student_email": normalized, "has_account": 1 if has_account else 0, "profile_url": profile_url, "checked_at": now}
 
 
 def save_appointment(data: dict) -> dict:
@@ -412,6 +477,12 @@ def save_appointment(data: dict) -> dict:
         assessment_data = json.dumps(assessment_data)
     elif not isinstance(assessment_data, str):
         assessment_data = ""
+
+    ensign_connect_status = data.get("ensign_connect_status")
+    if isinstance(ensign_connect_status, (dict, list)):
+        ensign_connect_status = json.dumps(ensign_connect_status)
+    elif not isinstance(ensign_connect_status, str):
+        ensign_connect_status = ""
 
     prep_notes = str(data.get("prep_notes") or "")
     session_notes = str(data.get("session_notes") or "")
@@ -437,34 +508,34 @@ def save_appointment(data: dict) -> dict:
                 UPDATE appointments SET
                     student_email = ?, student_name = ?, program = ?, career = ?,
                     confidence = ?, roadmap_status = ?, followup_track = ?,
-                    assessment_data = ?, prep_notes = ?, session_notes = ?,
-                    student_next = ?, mentor_follow = ?, checked_tasks = ?,
-                    current_task = ?, current_step = ?, civitas_recorded = ?,
-                    updated_at = ?
+                    assessment_data = ?, ensign_connect_status = ?, prep_notes = ?,
+                    session_notes = ?, student_next = ?, mentor_follow = ?,
+                    checked_tasks = ?, current_task = ?, current_step = ?,
+                    civitas_recorded = ?, updated_at = ?
                 WHERE id = ?
             """, (
                 student_email, student_name, program, career,
                 confidence, roadmap_status, followup_track,
-                assessment_data, prep_notes, session_notes,
-                student_next, mentor_follow, checked_tasks,
-                current_task, current_step, civitas_recorded,
-                now, app_id
+                assessment_data, ensign_connect_status, prep_notes,
+                session_notes, student_next, mentor_follow,
+                checked_tasks, current_task, current_step,
+                civitas_recorded, now, app_id
             ))
         else:
             cursor.execute("""
                 INSERT INTO appointments (
                     id, student_email, student_name, program, career,
                     confidence, roadmap_status, followup_track,
-                    assessment_data, prep_notes, session_notes,
-                    student_next, mentor_follow, checked_tasks,
+                    assessment_data, ensign_connect_status, prep_notes,
+                    session_notes, student_next, mentor_follow, checked_tasks,
                     current_task, current_step, civitas_recorded,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 app_id, student_email, student_name, program, career,
                 confidence, roadmap_status, followup_track,
-                assessment_data, prep_notes, session_notes,
-                student_next, mentor_follow, checked_tasks,
+                assessment_data, ensign_connect_status, prep_notes,
+                session_notes, student_next, mentor_follow, checked_tasks,
                 current_task, current_step, civitas_recorded,
                 now, now
             ))
@@ -1041,7 +1112,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         clean_path = self.path.split("?")[0]
-        if clean_path == "/api/career-explorer/admin-status":
+        if clean_path in ("/api/career-explorer/admin-status", "/api/career-explorer/session"):
             if not self._career_lookup_is_local():
                 self._json({
                     "authenticated": False,
@@ -1062,6 +1133,27 @@ class CoachHandler(SimpleHTTPRequestHandler):
             self._json(result)
             return
 
+        if clean_path in ("/api/ensign-connect/admin-status", "/api/ensign-connect/session"):
+            if not self._career_lookup_is_local():
+                self._json({
+                    "authenticated": False,
+                    "available": False,
+                    "status": "local_only",
+                    "message": "Ensign Connect lookup is available only on the mentor workstation.",
+                }, HTTPStatus.FORBIDDEN)
+                return
+            if not check_connect_session:
+                self._json({
+                    "authenticated": False,
+                    "available": False,
+                    "status": "unavailable",
+                    "message": "Ensign Connect lookup is not installed.",
+                }, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+            result = check_connect_session()
+            self._json(result)
+            return
+
         # Health & status endpoints
         if clean_path in ("/healthz", "/api/status"):
             active_eng = get_active_engine()
@@ -1076,6 +1168,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 "fallback_engine": "Google Gemini" if GEMINI_API_KEY else "Static Fallback",
                 "fallback_configured": bool(GEMINI_API_KEY),
                 "career_explorer_lookup_available": HAVE_PLAYWRIGHT,
+                "ensign_connect_lookup_available": HAVE_CONNECT_LOOKUP,
                 "rate_limit_per_min": RATE_LIMIT,
             })
             return
@@ -1206,6 +1299,120 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 return
 
             result = lookup_student_completion(email)
+            response_status = {
+                "unavailable": HTTPStatus.SERVICE_UNAVAILABLE,
+                "auth_required": HTTPStatus.UNAUTHORIZED,
+                "timeout": HTTPStatus.GATEWAY_TIMEOUT,
+                "error": HTTPStatus.BAD_GATEWAY,
+            }.get(result.get("status"), HTTPStatus.OK)
+            self._json(result, response_status)
+            return
+
+        # ----------------------------------------------------------------------
+        # Ensign Connect (PeopleGrove) student account lookup
+        # ----------------------------------------------------------------------
+        if self.path == "/api/ensign-connect/launch-login":
+            global CONNECT_LOGIN_PROCESS
+            if not self._career_lookup_is_local():
+                self._json({
+                    "status": "local_only",
+                    "message": "Ensign Connect authentication is available only on the mentor workstation.",
+                }, HTTPStatus.FORBIDDEN)
+                return
+            if not HAVE_PLAYWRIGHT:
+                self._json({
+                    "status": "unavailable",
+                    "message": "Install the optional Playwright setup before authenticating.",
+                }, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+
+            if CONNECT_LOGIN_PROCESS and CONNECT_LOGIN_PROCESS.poll() is None:
+                self._json({
+                    "status": "login_in_progress",
+                    "message": "The Ensign Connect authentication window is already open.",
+                })
+                return
+
+            try:
+                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+                CONNECT_LOGIN_PROCESS = subprocess.Popen(
+                    [sys.executable, str(ROOT_DIR / "login_ensign_connect.py")],
+                    cwd=str(ROOT_DIR),
+                    creationflags=creation_flags,
+                )
+                self._json({
+                    "status": "login_started",
+                    "message": "The Ensign Connect authentication window is opening.",
+                })
+            except Exception as error:
+                print(f"[Ensign Connect Login Error] {error}")
+                self._json({
+                    "status": "error",
+                    "message": "The Ensign Connect authentication window could not be opened.",
+                }, HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        if self.path in ("/api/ensign-connect/lookup", "/api/ensign-connect/lookup-live"):
+            force_live = (self.path == "/api/ensign-connect/lookup-live")
+            if not self._career_lookup_is_local():
+                self._json({
+                    "status": "local_only",
+                    "message": "Ensign Connect lookup is available only on the mentor workstation.",
+                }, HTTPStatus.FORBIDDEN)
+                return
+            client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
+            if not RATE_LIMITER.is_allowed(client_ip):
+                self._json({
+                    "status": "rate_limited",
+                    "message": "Please wait a moment before checking another student.",
+                }, HTTPStatus.TOO_MANY_REQUESTS)
+                return
+
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                if content_length <= 0 or content_length > 8192:
+                    raise ValueError("Invalid body size")
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+            except Exception:
+                self._json({"status": "error", "message": "Invalid request."}, HTTPStatus.BAD_REQUEST)
+                return
+
+            email = str(data.get("email", "")).strip().lower()
+            if not ENSIGN_EMAIL_PATTERN.fullmatch(email):
+                self._json({
+                    "status": "invalid_email",
+                    "message": "Enter the student's @ensign.edu email address.",
+                }, HTTPStatus.BAD_REQUEST)
+                return
+
+            # Check local cache first unless force_live is requested
+            if not force_live:
+                cached = get_ensign_connect_cache(email)
+                if cached:
+                    self._json({
+                        "found": bool(cached["has_account"]),
+                        "status": "found" if cached["has_account"] else "not_found",
+                        "profile_url": cached["profile_url"],
+                        "cached": True,
+                        "checked_at": cached["checked_at"],
+                        "message": "Student has an Ensign Connect account (cached)." if cached["has_account"] else "No Ensign Connect account found (cached).",
+                    })
+                    return
+
+            if not lookup_student_connect:
+                self._json({
+                    "status": "unavailable",
+                    "message": "Ensign Connect lookup is not installed.",
+                }, HTTPStatus.SERVICE_UNAVAILABLE)
+                return
+
+            result = lookup_student_connect(email)
+            # Update cache on successful definitive result
+            if result.get("status") in ("found", "not_found"):
+                cached_data = set_ensign_connect_cache(email, result.get("found", False), result.get("profile_url"))
+                result["cached"] = False
+                result["checked_at"] = cached_data["checked_at"]
+
             response_status = {
                 "unavailable": HTTPStatus.SERVICE_UNAVAILABLE,
                 "auth_required": HTTPStatus.UNAUTHORIZED,

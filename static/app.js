@@ -140,6 +140,12 @@ const defaultState = () => ({
     primary_values: [],
     primary_workplace_preferences: []
   },
+  connectStatus: {
+    checked: false,
+    found: false,
+    profileUrl: null,
+    checkedAt: null
+  },
   guidance: null,
   prepNotes: '',
   sessionNotes: '',
@@ -228,6 +234,7 @@ async function loadAppointmentById(appId) {
           followup: a.followup_track || ''
         },
         assessmentData: a.assessment_data && typeof a.assessment_data === 'object' ? a.assessment_data : defaultState().assessmentData,
+        connectStatus: a.ensign_connect_status && typeof a.ensign_connect_status === 'object' ? a.ensign_connect_status : defaultState().connectStatus,
         prepNotes: a.prep_notes || '',
         sessionNotes: a.session_notes || '',
         studentNext: a.student_next || '',
@@ -267,6 +274,7 @@ function persistState() {
         roadmap_status: state.student.roadmap,
         followup_track: state.student.followup,
         assessment_data: state.assessmentData,
+        ensign_connect_status: state.connectStatus,
         prep_notes: state.prepNotes,
         session_notes: state.sessionNotes,
         student_next: state.studentNext,
@@ -405,6 +413,117 @@ function renderAssessmentCards() {
       feedback.hidden = true;
     }
   }
+
+  renderConnectStatus();
+  renderStatusBadges();
+}
+
+function renderConnectStatus() {
+  const c = state.connectStatus || {};
+  const pill = $('#connect-status-pill');
+  const text = $('#connect-status-text');
+  const details = $('#connect-details');
+  const link = $('#connect-profile-link');
+  const timestamp = $('#connect-last-checked');
+  const recapConnect = $('#recap-connect');
+
+  if (timestamp) {
+    if (c.checkedAt) {
+      const d = new Date(c.checkedAt);
+      const timeStr = isNaN(d.getTime()) ? c.checkedAt : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      timestamp.textContent = `Last checked: ${timeStr}`;
+    } else {
+      timestamp.textContent = 'Not checked';
+    }
+  }
+
+  if (recapConnect) {
+    recapConnect.textContent = c.checked ? (c.found ? 'Account Active' : 'No Account') : 'Not checked';
+  }
+
+  if (!pill || !text) return;
+
+  if (!c.checked) {
+    pill.className = 'connect-status-pill pending';
+    pill.querySelector('.status-icon').textContent = '⚪';
+    text.textContent = 'Account not checked yet';
+    if (details) details.hidden = true;
+  } else if (c.found) {
+    pill.className = 'connect-status-pill found';
+    pill.querySelector('.status-icon').textContent = '✓';
+    text.textContent = 'Account Found & Active';
+    if (details) details.hidden = false;
+    if (link) {
+      if (c.profileUrl) {
+        link.href = c.profileUrl;
+        link.hidden = false;
+      } else {
+        link.hidden = true;
+      }
+    }
+  } else {
+    pill.className = 'connect-status-pill not_found';
+    pill.querySelector('.status-icon').textContent = '✗';
+    text.textContent = 'No Ensign Connect Account Found';
+    if (details) details.hidden = true;
+  }
+}
+
+function renderStatusBadges() {
+  const ceBadge = $('#badge-career-explorer');
+  const ecBadge = $('#badge-ensign-connect');
+
+  if (ceBadge) {
+    const isComplete = state.assessmentData?.status === 'complete' || state.assessmentData?.completed_count === 4;
+    const count = Number(state.assessmentData?.completed_count || 0);
+    if (isComplete) {
+      ceBadge.className = 'status-pill green';
+      ceBadge.textContent = '✓ Completed (4/4)';
+    } else if (count > 0) {
+      ceBadge.className = 'status-pill red';
+      ceBadge.textContent = `${count}/4 Incomplete`;
+    } else {
+      ceBadge.className = 'status-pill gray';
+      ceBadge.textContent = 'Not checked';
+    }
+  }
+
+  if (ecBadge) {
+    const c = state.connectStatus || {};
+    if (!c.checked) {
+      ecBadge.className = 'status-pill gray';
+      ecBadge.textContent = 'Not checked';
+    } else if (c.found) {
+      ecBadge.className = 'status-pill green';
+      ecBadge.textContent = '✓ Account Found';
+    } else {
+      ecBadge.className = 'status-pill red';
+      ecBadge.textContent = '✗ No Account';
+    }
+  }
+}
+
+function validatePrepStep1(showError = false) {
+  const emailInput = $('#prep-student-email');
+  const errorMsg = $('#prep-email-error');
+  const btnStep2 = $('#btn-prep-to-step2');
+  const emailVal = emailInput?.value.trim() || '';
+  const isValid = Boolean(emailVal) && /^[^@\s]+@ensign\.edu$/i.test(emailVal);
+
+  if (!isValid && showError) {
+    if (emailInput) emailInput.classList.add('required-incomplete');
+    if (errorMsg) errorMsg.hidden = false;
+  } else if (isValid) {
+    if (emailInput) emailInput.classList.remove('required-incomplete');
+    if (errorMsg) errorMsg.hidden = true;
+  }
+
+  if (btnStep2) {
+    btnStep2.disabled = !isValid;
+    btnStep2.title = isValid ? '' : 'Enter a valid student @ensign.edu email to continue';
+  }
+
+  return isValid;
 }
 
 function renderWorkflow() {
@@ -514,6 +633,7 @@ function renderPrepareWorkspace() {
 
   if (stepIdx === 0) {
     renderAssessmentCards();
+    validatePrepStep1(false);
   } else if (stepIdx === 1) {
     if (state.guidance) {
       renderGuidanceDisplay(state.guidance);
@@ -526,6 +646,7 @@ function renderPrepareWorkspace() {
     if ($('#recap-program')) $('#recap-program').textContent = state.student.program || 'Not selected';
     if ($('#recap-career')) $('#recap-career').textContent = state.student.career || 'Not selected';
     if ($('#recap-pathwayu')) $('#recap-pathwayu').textContent = state.assessmentData.status === 'complete' ? 'Completed' : `${state.assessmentData.completed_count || 0}/4 complete`;
+    if ($('#recap-connect')) $('#recap-connect').textContent = state.connectStatus?.checked ? (state.connectStatus.found ? 'Account Active' : 'No Account') : 'Not checked';
     if ($('#prep-notes-textarea')) $('#prep-notes-textarea').value = state.prepNotes || '';
   }
 }
@@ -537,6 +658,7 @@ function renderAppointmentWorkspace() {
   const showSessionDetails = stepIdx === 0 || stepIdx === WORKFLOW.length - 1;
   const sessionCard = $('#session-details-card');
   if (sessionCard) sessionCard.hidden = !showSessionDetails;
+  renderStatusBadges();
 
   const eyebrow = $('#step-eyebrow');
   if (eyebrow) eyebrow.textContent = `TASK 2: APPOINTMENT · STEP ${stepIdx + 1} OF ${WORKFLOW.length}`;
@@ -727,18 +849,44 @@ function bindSessionFields() {
   });
 }
 
+// B5: Pulsing Auth Buttons Queue (never flash more than one at a time)
+let activePulsingBtn = null;
+
+function updateAuthPulseQueue() {
+  const ceBtn = $('#prep-career-auth-btn');
+  const ecBtn = $('#prep-connect-auth-btn');
+
+  const ceNeedsAuth = ceBtn && !ceBtn.hidden;
+  const ecNeedsAuth = ecBtn && !ecBtn.hidden;
+
+  // Clear previous animations
+  if (ceBtn) ceBtn.classList.remove('auth-pulse');
+  if (ecBtn) ecBtn.classList.remove('auth-pulse');
+
+  // Priority queue: Career Explorer first, then Ensign Connect
+  if (ceNeedsAuth) {
+    ceBtn.classList.add('auth-pulse');
+    activePulsingBtn = ceBtn;
+  } else if (ecNeedsAuth) {
+    ecBtn.classList.add('auth-pulse');
+    activePulsingBtn = ecBtn;
+  } else {
+    activePulsingBtn = null;
+  }
+}
+
 async function checkCareerExplorerSession() {
   const statusEls = [$('#career-session-status'), $('#prep-career-session-status')].filter(Boolean);
   const authBtns = [$('#career-auth-button'), $('#prep-career-auth-btn')].filter(Boolean);
   try {
-    const response = await fetch('/api/career-explorer/admin-status', { cache: 'no-store' });
+    const response = await fetch('/api/career-explorer/session', { cache: 'no-store' });
     const data = await response.json();
     statusEls.forEach(status => {
       if (!data.available) {
         status.textContent = 'Optional setup needed';
         status.className = 'career-session-status warning';
       } else if (data.authenticated) {
-        status.textContent = 'Admin session ready';
+        status.textContent = 'Career Explorer ready';
         status.className = 'career-session-status ready';
       } else {
         status.textContent = data.in_progress ? 'Sign in in open window' : 'SSO login needed';
@@ -751,6 +899,7 @@ async function checkCareerExplorerSession() {
         btn.textContent = data.in_progress ? 'Check access' : 'Authenticate Career Explorer';
       }
     });
+    updateAuthPulseQueue();
     return data;
   } catch {
     statusEls.forEach(status => {
@@ -758,35 +907,128 @@ async function checkCareerExplorerSession() {
       status.className = 'career-session-status warning';
     });
     authBtns.forEach(btn => { btn.hidden = true; });
+    updateAuthPulseQueue();
+    return null;
+  }
+}
+
+async function checkEnsignConnectSession() {
+  const statusEl = $('#prep-connect-session-status');
+  const authBtn = $('#prep-connect-auth-btn');
+  try {
+    const response = await fetch('/api/ensign-connect/session', { cache: 'no-store' });
+    const data = await response.json();
+    if (statusEl) {
+      if (!data.available) {
+        statusEl.textContent = 'Optional setup needed';
+        statusEl.className = 'career-session-status warning';
+      } else if (data.authenticated) {
+        statusEl.textContent = 'Ensign Connect ready';
+        statusEl.className = 'career-session-status ready';
+      } else {
+        statusEl.textContent = data.in_progress ? 'Sign in in open window' : 'SSO login needed';
+        statusEl.className = 'career-session-status warning';
+      }
+    }
+    if (authBtn) {
+      authBtn.hidden = data.authenticated || !data.available;
+      if (!authBtn.hidden) {
+        authBtn.textContent = data.in_progress ? 'Check access' : 'Authenticate Ensign Connect';
+      }
+    }
+    updateAuthPulseQueue();
+    return data;
+  } catch {
+    if (statusEl) {
+      statusEl.textContent = 'Connect lookup unavailable';
+      statusEl.className = 'career-session-status warning';
+    }
+    if (authBtn) authBtn.hidden = true;
+    updateAuthPulseQueue();
     return null;
   }
 }
 
 async function launchCareerExplorerLogin() {
+  const btn = $('#prep-career-auth-btn');
+  if (btn) btn.classList.remove('auth-pulse');
   try {
     const res = await fetch('/api/career-explorer/launch-login', { method: 'POST' });
     const data = await res.json();
     showToast(data.message || 'Authentication window opening...');
   } catch (err) {
-    showToast('Failed to start authentication.');
+    showToast('Failed to start Career Explorer authentication.');
   } finally {
     await checkCareerExplorerSession();
   }
 }
 
+async function launchEnsignConnectLogin() {
+  const btn = $('#prep-connect-auth-btn');
+  if (btn) btn.classList.remove('auth-pulse');
+  try {
+    const res = await fetch('/api/ensign-connect/launch-login', { method: 'POST' });
+    const data = await res.json();
+    showToast(data.message || 'Authentication window opening...');
+  } catch (err) {
+    showToast('Failed to start Ensign Connect authentication.');
+  } finally {
+    await checkEnsignConnectSession();
+  }
+}
+
+async function lookupEnsignConnect(email, forceLive = false) {
+  const endpoint = forceLive ? '/api/ensign-connect/lookup-live' : '/api/ensign-connect/lookup';
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await response.json();
+
+    if (data.status === 'found' || data.status === 'not_found') {
+      state.connectStatus = {
+        checked: true,
+        found: Boolean(data.found),
+        profileUrl: data.profile_url || null,
+        checkedAt: data.checked_at || new Date().toISOString()
+      };
+      renderConnectStatus();
+      renderStatusBadges();
+      persistState();
+      return { success: true, data };
+    } else if (data.status === 'auth_required') {
+      showToast('Staff authentication required. Click Authenticate Ensign Connect.');
+      await checkEnsignConnectSession();
+      return { success: false, retryable: true, message: 'Ensign Connect authentication required' };
+    } else {
+      return { success: false, retryable: true, message: data.message || 'Ensign Connect check failed' };
+    }
+  } catch (err) {
+    return { success: false, retryable: true, message: 'Could not contact Ensign Connect service' };
+  }
+}
+
+// B4: Progress indicator naming the system being queried with partial failure handling
 async function performStudentLookup(email) {
   if (!email || !/^[^@\s]+@ensign\.edu$/i.test(email)) {
-    showToast('Please enter a valid @ensign.edu address.');
+    validatePrepStep1(true);
+    showToast('Please enter a valid student @ensign.edu address.');
     return;
   }
+  validatePrepStep1(false);
 
-  showToast('Checking Career Explorer assessments…');
   const feedback = $('#prep-lookup-feedback');
   if (feedback) {
     feedback.className = 'lookup-feedback-banner warning';
-    feedback.textContent = 'Checking completion in Career Explorer…';
+    feedback.textContent = '1/2: Checking Career Explorer assessments…';
     feedback.hidden = false;
   }
+
+  showToast('1/2: Checking Career Explorer…');
+  let ceSuccess = false;
+  let ceMsg = '';
 
   try {
     const response = await fetch('/api/career-explorer/lookup', {
@@ -797,27 +1039,48 @@ async function performStudentLookup(email) {
     const data = await response.json();
 
     if (data.status === 'complete' || data.status === 'incomplete') {
-      state.assessmentData = {
-        ...state.assessmentData,
-        ...data
-      };
+      state.assessmentData = { ...state.assessmentData, ...data };
       state.student.roadmap = data.status === 'complete'
         ? 'Completed'
         : (Number(data.completed_count) > 0 ? 'In progress' : 'Not started');
       if ($('#roadmap-status')) $('#roadmap-status').value = state.student.roadmap;
       renderAssessmentCards();
       await fetchCareerGuidance();
-      persistState();
-      showToast('Career Explorer completion updated!');
+      ceSuccess = true;
+      ceMsg = 'Career Explorer updated';
     } else if (data.status === 'auth_required') {
-      showToast('Staff authentication required. Click Authenticate Career Explorer.');
+      ceMsg = 'Career Explorer auth required';
       await checkCareerExplorerSession();
     } else {
-      showToast(data.message || 'Lookup unavailable.');
+      ceMsg = data.message || 'Career Explorer lookup unavailable';
     }
   } catch (err) {
-    showToast('Could not contact Career Explorer lookup service.');
+    ceMsg = 'Could not contact Career Explorer service';
   }
+
+  // Next step: Query Ensign Connect
+  if (feedback) {
+    feedback.textContent = '2/2: Checking Ensign Connect (PeopleGrove)…';
+  }
+  showToast('2/2: Checking Ensign Connect…');
+
+  const ecResult = await lookupEnsignConnect(email, false);
+  const ecSuccess = ecResult.success;
+  const ecMsg = ecSuccess ? 'Ensign Connect checked' : (ecResult.message || 'Ensign Connect failed');
+
+  // Summary message based on partial or full success
+  if (ceSuccess && ecSuccess) {
+    showToast('✓ Career Explorer & Ensign Connect both updated!');
+  } else if (ceSuccess && !ecSuccess) {
+    showToast(`✓ Career Explorer updated. (Ensign Connect: ${ecMsg})`);
+  } else if (!ceSuccess && ecSuccess) {
+    showToast(`✓ Ensign Connect checked. (Career Explorer: ${ceMsg})`);
+  } else {
+    showToast(`Lookups incomplete: ${ceMsg}. ${ecMsg}.`);
+  }
+
+  persistState();
+  renderStatusBadges();
 }
 
 async function handlePdfUpload(file) {
@@ -888,6 +1151,8 @@ function buildCivitasNote() {
     `Career Confidence: ${state.student.confidence || 5}/10
 ` +
     `Career Explorer Status: ${state.assessmentData?.status === 'complete' ? 'Completed (All 4 modules)' : (state.assessmentData?.completed_count > 0 ? `${state.assessmentData.completed_count}/4 completed` : 'Not completed')}${code}
+` +
+    `Ensign Connect Status: ${state.connectStatus?.checked ? (state.connectStatus.found ? 'Account Active' : 'No Account Found') : 'Not checked'}
 ` +
     `Next Planned Appointment: ${state.student.followup || 'Career Explorer / Create Resume'}
 
@@ -1265,6 +1530,28 @@ function bindEvents() {
   });
 
   $('#prep-career-auth-btn')?.addEventListener('click', launchCareerExplorerLogin);
+  $('#prep-connect-auth-btn')?.addEventListener('click', launchEnsignConnectLogin);
+
+  $('#btn-check-connect-live')?.addEventListener('click', async () => {
+    const email = $('#prep-student-email')?.value.trim();
+    if (!email || !/^[^@\s]+@ensign\.edu$/i.test(email)) {
+      validatePrepStep1(true);
+      showToast('Enter a valid student @ensign.edu email to check.');
+      return;
+    }
+    showToast('Checking Ensign Connect live…');
+    const res = await lookupEnsignConnect(email, true);
+    if (res.success) {
+      showToast('✓ Ensign Connect live check complete!');
+    } else {
+      showToast(`Ensign Connect check: ${res.message || 'Error'}`);
+    }
+  });
+
+  // B6: Live validation on email input
+  $('#prep-student-email')?.addEventListener('input', () => {
+    validatePrepStep1(false);
+  });
 
   const dropzone = $('#prep-pdf-dropzone');
   const fileInput = $('#prep-pdf-input');
@@ -1289,6 +1576,11 @@ function bindEvents() {
   }
 
   $('#btn-prep-to-step2')?.addEventListener('click', async () => {
+    // B6: Block advancement past incomplete required email
+    if (!validatePrepStep1(true)) {
+      showToast('Please enter a valid student @ensign.edu email before continuing.');
+      return;
+    }
     state.currentStep = 1;
     persistState();
     renderStep();
@@ -1472,6 +1764,7 @@ async function init() {
 
   loadServiceStatus();
   checkCareerExplorerSession();
+  checkEnsignConnectSession();
 }
 
 init();

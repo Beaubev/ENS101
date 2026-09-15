@@ -98,8 +98,14 @@
                       <h2>Step 1: Check Major &amp; Career Explorer Assessment</h2>
                     </div>
                     <div class="career-session-controls">
-                      <span id="prep-career-session-status" class="career-session-status">Checking access…</span>
-                      <button id="prep-career-auth-btn" class="button secondary small" type="button" hidden>Authenticate Career Explorer</button>
+                      <div class="auth-control-item">
+                        <span id="prep-career-session-status" class="career-session-status">Checking Career Explorer…</span>
+                        <button id="prep-career-auth-btn" class="button secondary small auth-btn" type="button" hidden>Authenticate Career Explorer</button>
+                      </div>
+                      <div class="auth-control-item">
+                        <span id="prep-connect-session-status" class="career-session-status">Checking Ensign Connect…</span>
+                        <button id="prep-connect-auth-btn" class="button secondary small auth-btn" type="button" hidden>Authenticate Ensign Connect</button>
+                      </div>
                     </div>
                   </div>
 
@@ -107,7 +113,8 @@
                     <label><span>Preferred name</span><input id="prep-student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
                     <label>
                       <span>Student @ensign.edu email <span class="required-star">*</span></span>
-                      <input id="prep-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" />
+                      <input id="prep-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" required />
+                      <span id="prep-email-error" class="field-error-msg" hidden>Student @ensign.edu email is required</span>
                     </label>
                     <label><span>Major or program</span><input id="prep-student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
                     <label><span>Career direction</span><input id="prep-career-direction" type="text" autocomplete="off" placeholder="e.g., Full Stack Web Developer" maxlength="100" /></label>
@@ -115,7 +122,7 @@
                       <span>&nbsp;</span>
                       <button id="prep-career-lookup-btn" class="button primary" type="button">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                        <span>Check Career Explorer Completion</span>
+                        <span>Check Explorer &amp; Connect</span>
                       </button>
                     </div>
                   </div>
@@ -123,6 +130,29 @@
                   <p class="career-lookup-privacy">Student record and notes persist locally until the appointment is completed and confirmed recorded in Civitas.</p>
 
                   <div id="prep-lookup-feedback" class="lookup-feedback-banner" hidden></div>
+
+                  <!-- Ensign Connect Account Check Section -->
+                  <div class="prep-connect-section">
+                    <div class="prep-subheading">
+                      <h3>Ensign Connect (PeopleGrove) Network Account</h3>
+                      <div class="connect-action-group">
+                        <span id="connect-last-checked" class="timestamp-subtext">Not checked</span>
+                        <button id="btn-check-connect-live" class="button text-button small" type="button" title="Check live from Ensign Connect">
+                          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+                          <span>Check live</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div class="connect-status-bar" id="connect-status-bar">
+                      <div class="connect-status-pill pending" id="connect-status-pill">
+                        <span class="status-icon">⚪</span>
+                        <span class="status-text" id="connect-status-text">Account not checked yet</span>
+                      </div>
+                      <div class="connect-details" id="connect-details" hidden>
+                        <a id="connect-profile-link" class="task-action" href="#" target="_blank" rel="noopener" hidden>View Profile in Ensign Connect</a>
+                      </div>
+                    </div>
+                  </div>
 
                   <!-- 4 Assessment Cards Grid -->
                   <div class="prep-assessment-section">
@@ -277,6 +307,7 @@
                     <span class="recap-item"><strong>Major:</strong> <span id="recap-program">Software Engineering</span></span>
                     <span class="recap-item"><strong>Career:</strong> <span id="recap-career">Full Stack Web Developer</span></span>
                     <span class="recap-item"><strong>Career Explorer:</strong> <span id="recap-pathwayu">Completed</span></span>
+                    <span class="recap-item"><strong>Ensign Connect:</strong> <span id="recap-connect">Not checked</span></span>
                   </div>
 
                   <div class="prep-notes-editor">
@@ -323,6 +354,17 @@
                   <label class="confidence-field"><span>Career confidence: <output id="confidence-output" for="career-confidence">5</output>/10</span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
                   <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
                   <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
+                </div>
+                <!-- Status Badges Row (Career Explorer & Ensign Connect) -->
+                <div class="status-badges-row" id="session-status-badges">
+                  <div class="status-badge-item">
+                    <span class="badge-label">Career Explorer:</span>
+                    <span id="badge-career-explorer" class="status-pill gray">Not checked</span>
+                  </div>
+                  <div class="status-badge-item">
+                    <span class="badge-label">Ensign Connect:</span>
+                    <span id="badge-ensign-connect" class="status-pill gray">Not checked</span>
+                  </div>
                 </div>
                 <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
               </section>
