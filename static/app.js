@@ -126,8 +126,10 @@ function renderWorkflow() {
   WORKFLOW.forEach((step, index) => {
     const button = document.createElement('button');
     const complete = stepComplete(step);
+    const confidence = Number(state.student.confidence || 5);
+    const confidenceTone = confidence <= 5 ? 'confidence-low' : confidence <= 7 ? 'confidence-medium' : 'confidence-high';
     button.type = 'button';
-    button.className = `workflow-button${index === state.currentStep ? ' active' : ''}${complete ? ' complete' : ''}`;
+    button.className = `workflow-button${index === state.currentStep ? ' active' : ''}${complete ? ' complete' : ''}${index === 0 ? ` ${confidenceTone}` : ''}`;
     button.setAttribute('aria-current', index === state.currentStep ? 'step' : 'false');
     button.innerHTML = `<span class="workflow-num">${complete ? '✓' : index + 1}</span><span class="workflow-label"><strong>${step.label}</strong><small>${step.short}</small></span>${complete ? '<span class="workflow-check">✓</span>' : ''}`;
     button.addEventListener('click', () => { state.currentStep = index; persistState(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
@@ -147,6 +149,8 @@ function renderProgress() {
 
 function renderStep() {
   const step = WORKFLOW[state.currentStep];
+  const showSessionDetails = state.currentStep === 0 || state.currentStep === WORKFLOW.length - 1;
+  $('#session-details-card').hidden = !showSessionDetails;
   $('#step-title').textContent = step.title;
   $('#step-description').textContent = step.description;
   $('#step-duration').textContent = `Suggested time · ${step.duration}`;
@@ -224,7 +228,12 @@ function bindSessionFields() {
   ];
   fields.forEach(([selector, key]) => {
     const element = $(selector); element.value = state.student[key];
-    element.addEventListener('input', () => { state.student[key] = element.value; updateRecommendation(); persistState(); });
+    element.addEventListener('input', () => {
+      state.student[key] = element.value;
+      updateRecommendation();
+      if (key === 'confidence') renderWorkflow();
+      persistState();
+    });
   });
   [['#session-notes', 'notes'], ['#student-next-step', 'studentNext'], ['#mentor-follow-up', 'mentorFollow']].forEach(([selector, key]) => {
     const element = $(selector); element.value = state[key];
@@ -241,12 +250,12 @@ function updateRecommendation() {
     ? 'recommendation-low'
     : confidence <= 7 ? 'recommendation-medium' : 'recommendation-high';
   const recommendation = confidence <= 5
-    ? '<strong>Suggested direction:</strong> The student may benefit from a Major & Career Exploration follow-up after completing the Major & Career Exploration assessments.'
+    ? 'The student may benefit from a Major & Career Exploration follow-up after completing the Major & Career Exploration assessments.'
     : confidence <= 7
       ? '<strong>Discuss both options:</strong> Clarify the student’s career direction, then choose Major & Career Exploration or Create Resume together.'
-      : '<strong>Suggested direction:</strong> If the student remains confident after discussion, consider a Create Resume appointment.';
+      : 'If the student remains confident after discussion, consider a Create Resume appointment.';
   recommendationElement.className = `recommendation ${recommendationTone}`;
-  recommendationElement.innerHTML = `${recommendation}<span>The mentor makes the final decision with the student.</span>`;
+  recommendationElement.innerHTML = `<div class="recommendation-label">Suggested Direction:</div><div class="recommendation-content"><div class="recommendation-guidance">${recommendation}</div><span class="recommendation-note">The mentor makes the final decision with the student.</span></div>`;
 }
 
 function setCareerLookupResult(kind, title, details = []) {
