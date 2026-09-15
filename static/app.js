@@ -512,6 +512,10 @@ async function submitCopilot(message) {
 
 function resetAppointment() {
   state = defaultState(); localStorage.removeItem(STORAGE_KEY);
+  const emailInput = $('#career-student-email');
+  if (emailInput) emailInput.value = '';
+  const lookupResult = $('#career-lookup-result');
+  if (lookupResult) lookupResult.hidden = true;
   bindStateToInputs(); renderStep(); renderChat(); $('#confirm-dialog').hidden = true; showView('appointment'); showToast('New appointment ready');
 }
 
@@ -576,6 +580,10 @@ function bindEvents() {
   $$('.top-nav-button').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
   $$('[data-view-jump]').forEach(button => button.addEventListener('click', () => showView(button.dataset.viewJump)));
   $('#resource-search').addEventListener('input', renderResources);
+  const lookupForm = $('#career-lookup-form');
+  if (lookupForm) lookupForm.addEventListener('submit', lookupCareerExplorer);
+  const authBtn = $('#career-auth-button');
+  if (authBtn) authBtn.addEventListener('click', launchCareerExplorerLogin);
   $('#previous-step').addEventListener('click', () => { if (state.currentStep > 0) { state.currentStep--; persistState(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
   $('#next-step').addEventListener('click', () => {
     if (state.currentStep < WORKFLOW.length - 1) { state.currentStep++; persistState(); renderStep(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -645,4 +653,4 @@ async function loadServiceStatus() {
   }
 }
 
-bindSessionFields(); bindEvents(); configureTopLinks(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus();
+bindSessionFields(); bindEvents(); configureTopLinks(); renderQuickTools(); renderResources(); renderStep(); renderChat(); loadServiceStatus(); checkCareerExplorerSession();

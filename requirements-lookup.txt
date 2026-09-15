@@ -1,0 +1,2 @@
+# Optional dependency for authenticated Career Explorer completion lookups.
+playwright>=1.48,<2
