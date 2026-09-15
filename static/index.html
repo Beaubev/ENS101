@@ -76,7 +76,7 @@
               <span id="step-duration" class="duration-chip"></span>
             </div>
 
-            <section class="student-card card" aria-labelledby="student-heading">
+            <section id="session-details-card" class="student-card card" aria-labelledby="student-heading">
               <div class="section-heading compact">
                 <div><p class="eyebrow">Session details</p><h2 id="student-heading">Who are you meeting?</h2></div>
                 <span class="optional-label">Non-sensitive details only</span>
@@ -89,6 +89,26 @@
                 <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
                 <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
               </div>
+              <section class="career-lookup" aria-label="Major &amp; Career Explorer Lookup">
+                <div class="career-lookup-heading">
+                  <div>
+                    <p class="eyebrow">Major &amp; Career Explorer Lookup</p>
+                  </div>
+                  <div class="career-session-controls">
+                    <span id="career-session-status" class="career-session-status">Checking access…</span>
+                    <button id="career-auth-button" class="button secondary small" type="button" hidden>Authenticate PathwayU</button>
+                  </div>
+                </div>
+                <form id="career-lookup-form" class="career-lookup-form">
+                  <label for="career-student-email">
+                    <span>Student @ensign.edu email</span>
+                    <input id="career-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" aria-describedby="career-lookup-privacy" />
+                  </label>
+                  <button id="career-lookup-button" class="button primary" type="submit">Check completion</button>
+                </form>
+                <p id="career-lookup-privacy" class="career-lookup-privacy">Used only for this lookup. The email is not saved in the appointment or included in notes.</p>
+                <div id="career-lookup-result" class="career-lookup-result" role="status" aria-live="polite" hidden></div>
+              </section>
               <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
             </section>
 

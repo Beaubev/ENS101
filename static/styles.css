@@ -124,6 +124,12 @@ svg { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-wi
 .workflow-button { width: 100%; display: grid; grid-template-columns: 31px 1fr auto; align-items: center; gap: 11px; padding: 12px 10px; border: 0; border-radius: 10px; background: transparent; text-align: left; cursor: pointer; }
 .workflow-button:hover { background: var(--blue-50); }
 .workflow-button.active { background: var(--blue-100); }
+.workflow-button.confidence-low { border-left: 4px solid #111827; background: #f1f3f5; }
+.workflow-button.confidence-medium { border-left: 4px solid #d97706; background: #fff1db; }
+.workflow-button.confidence-high { border-left: 4px solid #2563eb; background: #eaf2ff; }
+.workflow-button.confidence-low:hover { background: #e5e7eb; }
+.workflow-button.confidence-medium:hover { background: #ffe5bd; }
+.workflow-button.confidence-high:hover { background: #dbeafe; }
 .workflow-num { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid #cbd5dc; border-radius: 50%; color: var(--muted); background: #fff; font-size: 11px; font-weight: 800; }
 .workflow-button.active .workflow-num { color: #fff; border-color: var(--navy-800); background: var(--navy-800); }
 .workflow-button.complete .workflow-num { color: #fff; border-color: var(--green); background: var(--green); }
@@ -150,6 +156,7 @@ svg { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-wi
 .section-heading h2 { margin: 0; color: var(--navy-950); font-size: 17px; line-height: 1.25; }
 .optional-label { color: var(--muted); font-size: 10.5px; }
 .student-card { padding: 20px 22px 22px; margin-bottom: 20px; }
+.student-card[hidden] { display: none; }
 .student-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 label > span { display: block; margin-bottom: 7px; color: #4d5b68; font-size: 11px; font-weight: 750; }
 input, select, textarea { width: 100%; border: 1px solid #ced7dd; border-radius: 8px; color: var(--ink); background: #fff; transition: border-color .16s ease, box-shadow .16s ease; }
@@ -159,9 +166,31 @@ input::placeholder, textarea::placeholder { color: #9aa5ae; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy-700); box-shadow: 0 0 0 3px rgba(41,75,106,.1); }
 .confidence-field input { padding: 0; accent-color: var(--navy-700); cursor: pointer; }
 .confidence-field output { color: var(--navy-800); font-weight: 850; }
-.recommendation { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 15px; padding: 10px 12px; border: 1px solid #d8e3e9; border-radius: 8px; color: #3f5362; background: var(--blue-50); font-size: 11px; line-height: 1.45; }
-.recommendation strong { color: var(--navy-800); }
-.recommendation span { flex: 0 0 auto; color: var(--muted); font-size: 9.5px; }
+.career-lookup { margin-top: 17px; padding: 15px; border: 1px solid #d8e3e9; border-radius: 10px; background: #f8fbfc; }
+.career-lookup-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.career-lookup-heading h3 { margin: 2px 0 0; color: var(--navy-950); font-size: 14px; }
+.career-session-controls { display: flex; align-items: center; justify-content: flex-end; gap: 9px; }
+.career-session-controls .button[hidden] { display: none; }
+.career-session-status { color: var(--muted); font-size: 10.5px; font-weight: 750; }
+.career-session-status.ready { color: var(--green); }
+.career-session-status.warning { color: #8a5c08; }
+.career-lookup-form { display: grid; grid-template-columns: minmax(230px, 1fr) auto; align-items: end; gap: 10px; margin-top: 13px; }
+.career-lookup-form .button { height: 42px; }
+.career-lookup-privacy { margin: 8px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.45; }
+.career-lookup-result { margin-top: 11px; padding: 10px 12px; border: 1px solid #d8e3e9; border-radius: 8px; color: #3f5362; background: #fff; font-size: 11px; line-height: 1.5; }
+.career-lookup-result strong { display: block; margin-bottom: 2px; color: var(--navy-900); font-size: 11.5px; }
+.career-lookup-result.success { border-color: #bddbcd; color: #315f4b; background: #f3faf6; }
+.career-lookup-result.warning { border-color: #e5d7ba; color: #66552c; background: #fcf8ef; }
+.career-lookup-result.error { border-color: #e7c5c5; color: #7d3636; background: #fff7f7; }
+.recommendation { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px; margin-top: 15px; color: #111827; font-size: 11px; line-height: 1.45; }
+.recommendation-label { display: flex; align-items: center; padding: 10px 12px; border: 1px solid #d4a72c; border-radius: 8px; color: #111827; background: #f7cf58; font-weight: 850; }
+.recommendation-content { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 12px; border: 1px solid #efc792; border-left-width: 4px; border-radius: 8px; color: #111827; background: #fff1db; }
+.recommendation-guidance { color: #111827; }
+.recommendation-guidance strong { color: #111827; }
+.recommendation-note { flex: 0 0 auto; color: #4b5563; font-size: 9.5px; }
+.recommendation-low .recommendation-content { border-left-color: #111827; }
+.recommendation-medium .recommendation-content { border-left-color: #d97706; }
+.recommendation-high .recommendation-content { border-left-color: #2563eb; }
 .appointment-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(290px, .8fr); gap: 20px; align-items: start; }
 .task-card { padding: 22px; }
 .count-badge { padding: 5px 9px; border-radius: 15px; color: var(--muted); background: var(--blue-50); font-size: 10px; font-weight: 750; }
@@ -352,8 +381,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--n
   .duration-chip { display: none; }
   .student-card, .task-card, .notes-card { padding: 17px; }
   .student-fields { grid-template-columns: 1fr; }
-  .recommendation { display: block; }
-  .recommendation span { display: block; margin-top: 5px; }
+  .career-lookup-heading { align-items: flex-start; flex-direction: column; }
+  .career-session-controls { width: 100%; justify-content: space-between; }
+  .career-lookup-form { grid-template-columns: 1fr; }
+  .recommendation { grid-template-columns: 1fr; }
+  .recommendation-content { display: block; }
+  .recommendation-note { display: block; margin-top: 5px; }
   .support-column { grid-template-columns: 1fr; }
   .notes-grid { grid-template-columns: 1fr; }
   .resource-heading { display: block; }
