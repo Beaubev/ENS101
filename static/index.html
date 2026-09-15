@@ -94,12 +94,12 @@
                 <div class="card prep-card">
                   <div class="section-heading compact">
                     <div>
-                      <p class="eyebrow">Student Profile &amp; PathwayU Lookup</p>
-                      <h2>Step 1: Check Major &amp; Career Explorer Assessment (PathwayU)</h2>
+                      <p class="eyebrow">Student Profile &amp; Career Explorer Lookup</p>
+                      <h2>Step 1: Check Major &amp; Career Explorer Assessment</h2>
                     </div>
                     <div class="career-session-controls">
                       <span id="prep-career-session-status" class="career-session-status">Checking access…</span>
-                      <button id="prep-career-auth-btn" class="button secondary small" type="button" hidden>Authenticate PathwayU</button>
+                      <button id="prep-career-auth-btn" class="button secondary small" type="button" hidden>Authenticate Career Explorer</button>
                     </div>
                   </div>
 
@@ -111,12 +111,11 @@
                     </label>
                     <label><span>Major or program</span><input id="prep-student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
                     <label><span>Career direction</span><input id="prep-career-direction" type="text" autocomplete="off" placeholder="e.g., Full Stack Web Developer" maxlength="100" /></label>
-                    <label class="confidence-field"><span>Career confidence: <output id="prep-confidence-output" for="prep-career-confidence">5</output>/10</span><input id="prep-career-confidence" type="range" min="1" max="10" value="5" /></label>
                     <div class="prep-lookup-action">
                       <span>&nbsp;</span>
                       <button id="prep-career-lookup-btn" class="button primary" type="button">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                        <span>Check PathwayU Completion</span>
+                        <span>Check Career Explorer Completion</span>
                       </button>
                     </div>
                   </div>
@@ -128,7 +127,7 @@
                   <!-- 4 Assessment Cards Grid -->
                   <div class="prep-assessment-section">
                     <div class="prep-subheading">
-                      <h3>PathwayU Assessment Modules</h3>
+                      <h3>Career Explorer Assessment Modules</h3>
                       <span id="prep-completion-count" class="count-badge">0 of 4 complete</span>
                     </div>
                     <div class="assessment-cards-grid">
@@ -173,7 +172,7 @@
                       <svg class="dropzone-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="12" y2="12"/><line x1="15" y1="15" x2="12" y2="12"/></svg>
                       <div class="dropzone-copy">
                         <strong>Or Drag &amp; Drop Student's Career Explorer PDF Report Here</strong>
-                        <span>Drop the downloaded PathwayU PDF report, or <label for="prep-pdf-input" class="browse-link">browse file</label></span>
+                        <span>Drop the downloaded Career Explorer PDF report, or <label for="prep-pdf-input" class="browse-link">browse file</label></span>
                       </div>
                       <input type="file" id="prep-pdf-input" accept="application/pdf" class="sr-only" />
                     </div>
@@ -231,7 +230,7 @@
                     <div class="guidance-card">
                       <div class="guidance-card-header">
                         <span class="guidance-card-icon">💼</span>
-                        <h3>Recommended Career Pathways</h3>
+                        <h3>Possible Career Pathways</h3>
                       </div>
                       <ul id="guidance-careers-list" class="guidance-list">
                         <li>Student Advisor &amp; Coordinator</li>
@@ -277,7 +276,7 @@
                     <span class="recap-item"><strong>Email:</strong> <span id="recap-email">jordan.taylor@ensign.edu</span></span>
                     <span class="recap-item"><strong>Major:</strong> <span id="recap-program">Software Engineering</span></span>
                     <span class="recap-item"><strong>Career:</strong> <span id="recap-career">Full Stack Web Developer</span></span>
-                    <span class="recap-item"><strong>PathwayU:</strong> <span id="recap-pathwayu">Completed</span></span>
+                    <span class="recap-item"><strong>Career Explorer:</strong> <span id="recap-pathwayu">Completed</span></span>
                   </div>
 
                   <div class="prep-notes-editor">
@@ -325,26 +324,6 @@
                   <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
                   <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
                 </div>
-                <section class="career-lookup" aria-label="Major &amp; Career Explorer Lookup">
-                  <div class="career-lookup-heading">
-                    <div>
-                      <p class="eyebrow">Major &amp; Career Explorer Lookup</p>
-                    </div>
-                    <div class="career-session-controls">
-                      <span id="career-session-status" class="career-session-status">Checking access…</span>
-                      <button id="career-auth-button" class="button secondary small" type="button" hidden>Authenticate PathwayU</button>
-                    </div>
-                  </div>
-                  <form id="career-lookup-form" class="career-lookup-form">
-                    <label for="career-student-email">
-                      <span>Student @ensign.edu email</span>
-                      <input id="career-student-email" type="email" inputmode="email" autocomplete="off" placeholder="student.name@ensign.edu" maxlength="160" aria-describedby="career-lookup-privacy" />
-                    </label>
-                    <button id="career-lookup-button" class="button primary" type="submit">Check completion</button>
-                  </form>
-                  <p id="career-lookup-privacy" class="career-lookup-privacy">Student record and notes persist locally until the appointment is completed and confirmed recorded in Civitas.</p>
-                  <div id="career-lookup-result" class="career-lookup-result" role="status" aria-live="polite" hidden></div>
-                </section>
                 <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
               </section>
 
@@ -490,7 +469,7 @@
                 <option value="Mentor Copilot">Mentor Copilot AI</option>
                 <option value="Ensign Connect">Ensign Connect Integration</option>
                 <option value="Internship Plan">Internship Plan / CAR 201</option>
-                <option value="Career Direction">Career Direction / PathwayU</option>
+                <option value="Career Direction">Career Direction / Career Explorer</option>
                 <option value="UI & Usability">UI & Usability</option>
                 <option value="Resources & Referrals">Resources & Referrals</option>
                 <option value="Other Idea">Other Idea</option>

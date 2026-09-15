@@ -584,7 +584,7 @@ def parse_pathwayu_text(text: str) -> dict:
 
 
 def generate_career_guidance(student_name: str, program: str, career: str, assessment_data: dict | None = None) -> dict:
-    """Generates tailored guidance from PathwayU assessment results and student context."""
+    """Generates tailored guidance from Career Explorer assessment results and student context."""
     assessment_data = assessment_data or {}
     holland_code = assessment_data.get("holland_code", "")
     completed_count = assessment_data.get("completed_count", 0)
@@ -643,7 +643,7 @@ def generate_career_guidance(student_name: str, program: str, career: str, asses
         missing_str = ", ".join(missing) if missing else "remaining sections"
         status_summary = f"{completed_count} of 4 assessments complete. Still needed: {missing_str}."
     else:
-        status_summary = "PathwayU assessments have not yet been completed. Encourage the student to complete all four sections before or during this session."
+        status_summary = "Career Explorer assessments have not yet been completed. Encourage the student to complete all four sections before or during this session."
 
     guidance_sections.append({
         "title": "Assessment Completion Status",
@@ -664,7 +664,7 @@ def generate_career_guidance(student_name: str, program: str, career: str, asses
 
     if aligned_careers:
         guidance_sections.append({
-            "title": "Recommended Career Pathways",
+            "title": "Possible Career Pathways",
             "content": "• " + "\n• ".join(aligned_careers)
         })
 
@@ -709,7 +709,7 @@ Guidelines:
 5. Do not diagnose, investigate, or invite sensitive details. If safety, health, financial, legal, or crisis concerns appear, advise the mentor to follow Ensign College policy and contact the appropriate professional or supervisor.
 6. Never request student IDs, passwords, financial account information, health details, immigration documents, or other protected information.
 7. Preserve the mentor's authentic, encouraging voice in drafts.
-8. Page 1 of Appointment 1a includes: joining Ensign Connect and a major group; reviewing notification preferences, alumni, and informational interviews; explaining internship planning and early CAR 201 preparation; asking for the student's major, career direction, and 1-10 confidence; checking the PathwayU Career Explorer roadmap; selecting a Career Explorer or Create Resume follow-up; confirming Roadmap 2 through Step 5; and taking the appointment selfie.
+8. Page 1 of Appointment 1a includes: joining Ensign Connect and a major group; reviewing notification preferences, alumni, and informational interviews; explaining internship planning and early CAR 201 preparation; asking for the student's major, career direction, and 1-10 confidence; checking the Career Explorer roadmap; selecting a Career Explorer or Create Resume follow-up; confirming Roadmap 2 through Step 5; and taking the appointment selfie.
 9. Treat internship-course details and international-student work rules as items to verify against current Ensign policy. Never present immigration guidance as a definitive personal determination.
 10. INTERNSHIP DIRECTIVE: If the mentor asks ANY question regarding internships, internship requirements, finding or applying for an internship, internship courses (CAR 201, CAR 398, CAR 399, CAR 499), PBWE, practical training, or CPT, DO NOT answer the question in the ENS 101 app. Instead, direct them to the Ensign Internship Expert app with the markdown link: [Ensign Internship Expert](/internship/).
 """
@@ -718,7 +718,7 @@ MODE_CONTEXTS = {
     "begin": "Appointment 1a stage: Begin. Help the mentor open warmly and ask about the student's major and intended career.",
     "ensign-connect": "Appointment 1a stage: Ensign Connect. Guide the mentor through joining, major groups, preferences, alumni discovery, and informational interviews.",
     "internship": "Appointment 1a stage: Internship Plan. Explain general preparation, course pairing, timelines, and which details require current-policy verification.",
-    "career-direction": "Appointment 1a stage: Career Direction. Use confidence and PathwayU progress to choose a Career Explorer or Create Resume follow-up.",
+    "career-direction": "Appointment 1a stage: Career Direction. Use confidence and Career Explorer progress to choose a Career Explorer or Create Resume follow-up.",
     "complete": "Appointment 1a stage: Complete. Confirm the student and mentor actions, then finish the page 1 checklist with the appointment selfie.",
 }
 
@@ -1130,7 +1130,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
             if not self._career_lookup_is_local():
                 self._json({
                     "status": "local_only",
-                    "message": "PathwayU authentication is available only on the mentor workstation.",
+                    "message": "Career Explorer authentication is available only on the mentor workstation.",
                 }, HTTPStatus.FORBIDDEN)
                 return
             if not HAVE_PLAYWRIGHT:
@@ -1156,13 +1156,13 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 )
                 self._json({
                     "status": "login_started",
-                    "message": "The PathwayU authentication window is opening.",
+                    "message": "The Career Explorer authentication window is opening.",
                 })
             except Exception as error:
                 print(f"[PathwayU Login Error] {error}")
                 self._json({
                     "status": "error",
-                    "message": "The PathwayU authentication window could not be opened.",
+                    "message": "The Career Explorer authentication window could not be opened.",
                 }, HTTPStatus.INTERNAL_SERVER_ERROR)
             return
 

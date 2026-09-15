@@ -5,11 +5,11 @@ const PREPARE_STEPS = [
   {
     id: 'prep-assessment',
     label: 'Assessment',
-    short: 'Determine PathwayU completion',
+    short: 'Determine Career Explorer completion',
     duration: '3–5 min',
-    title: 'Determine PathwayU Assessment Completion',
+    title: 'Determine Career Explorer Assessment Completion',
     description: 'Enter the student’s @ensign.edu email to check completion across the four Career Explorer assessments, or upload their PDF report.',
-    copilot: ['How do I explain PathwayU?', 'What if a student hasn’t taken the assessments?', 'Explain the 4 PathwayU assessments']
+    copilot: ['How do I explain Career Explorer?', 'What if a student hasn’t taken the assessments?', 'Explain the 4 Career Explorer assessments']
   },
   {
     id: 'prep-guidance',
@@ -81,7 +81,7 @@ const WORKFLOW = [
     description: 'Use the 1–10 confidence question and Career Explorer roadmap status to decide whether the next appointment should focus on exploration or résumé creation.',
     tasks: [
       { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' },
-      { id: 'career-pathwayu', title: 'Check Career Explorer roadmap progress', detail: 'Ask whether the student completed the PathwayU roadmap assessments and update the status above.', action: { label: 'Open Career Explorer', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } },
+      { id: 'career-pathwayu', title: 'Check Career Explorer roadmap progress', detail: 'Ask whether the student completed the Career Explorer roadmap assessments and update the status above.', action: { label: 'Open Career Explorer', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } },
       { id: 'career-followup', title: 'Choose the next appointment type', detail: 'If the student is still exploring, plan a Career Explorer appointment. If confident, plan a Create Resume appointment.' },
       { id: 'career-roadmap2', title: 'If scheduling Create Resume appointment, show Roadmap 2, Steps 1-5', detail: 'Make sure the student knows what to complete before the next appointment.' },
       { id: 'career-action', title: 'Record a specific student action', detail: 'Add the agreed action and time frame in the appointment record below.' }
@@ -623,15 +623,13 @@ function updateRecommendation() {
 
   const out = $('#confidence-output');
   if (out) out.textContent = confidence;
-  const prepOut = $('#prep-confidence-output');
-  if (prepOut) prepOut.textContent = confidence;
 
   const recommendationTone = confidence <= 5
     ? 'recommendation-low'
     : confidence <= 7 ? 'recommendation-medium' : 'recommendation-high';
 
   const recommendation = confidence <= 5
-    ? 'The student may benefit from a Career Explorer follow-up after completing the PathwayU roadmap.'
+    ? 'The student may benefit from a Career Explorer follow-up after completing the Career Explorer roadmap.'
     : confidence <= 7
       ? '<strong>Discuss both options:</strong> Clarify the student’s career direction, then choose Career Explorer or Create Resume together.'
       : 'If the student remains confident after discussion, consider a Create Resume appointment.';
@@ -645,7 +643,6 @@ function syncInputsFromState() {
   if ($('#prep-student-email')) $('#prep-student-email').value = state.student.email;
   if ($('#prep-student-program')) $('#prep-student-program').value = state.student.program;
   if ($('#prep-career-direction')) $('#prep-career-direction').value = state.student.career;
-  if ($('#prep-career-confidence')) $('#prep-career-confidence').value = state.student.confidence;
   if ($('#prep-notes-textarea')) $('#prep-notes-textarea').value = state.prepNotes;
 
   if ($('#student-name')) $('#student-name').value = state.student.name;
@@ -666,10 +663,10 @@ function syncInputsFromState() {
 function bindSessionFields() {
   const syncPairs = [
     [['#prep-student-name', '#student-name'], 'name'],
-    [['#prep-student-email', '#career-student-email'], 'email'],
+    [['#prep-student-email'], 'email'],
     [['#prep-student-program', '#student-program'], 'program'],
     [['#prep-career-direction', '#career-direction'], 'career'],
-    [['#prep-career-confidence', '#career-confidence'], 'confidence']
+    [['#career-confidence'], 'confidence']
   ];
 
   syncPairs.forEach(([selectors, key]) => {
@@ -751,7 +748,7 @@ async function checkCareerExplorerSession() {
     authBtns.forEach(btn => {
       btn.hidden = data.authenticated || !data.available;
       if (!btn.hidden) {
-        btn.textContent = data.in_progress ? 'Check access' : 'Authenticate PathwayU';
+        btn.textContent = data.in_progress ? 'Check access' : 'Authenticate Career Explorer';
       }
     });
     return data;
@@ -783,11 +780,11 @@ async function performStudentLookup(email) {
     return;
   }
 
-  showToast('Checking PathwayU assessments…');
+  showToast('Checking Career Explorer assessments…');
   const feedback = $('#prep-lookup-feedback');
   if (feedback) {
     feedback.className = 'lookup-feedback-banner warning';
-    feedback.textContent = 'Checking completion in PathwayU…';
+    feedback.textContent = 'Checking completion in Career Explorer…';
     feedback.hidden = false;
   }
 
@@ -811,15 +808,15 @@ async function performStudentLookup(email) {
       renderAssessmentCards();
       await fetchCareerGuidance();
       persistState();
-      showToast('PathwayU completion updated!');
+      showToast('Career Explorer completion updated!');
     } else if (data.status === 'auth_required') {
-      showToast('Staff authentication required. Click Authenticate PathwayU.');
+      showToast('Staff authentication required. Click Authenticate Career Explorer.');
       await checkCareerExplorerSession();
     } else {
       showToast(data.message || 'Lookup unavailable.');
     }
   } catch (err) {
-    showToast('Could not contact PathwayU lookup service.');
+    showToast('Could not contact Career Explorer lookup service.');
   }
 }
 
@@ -890,7 +887,7 @@ function buildCivitasNote() {
 ` +
     `Career Confidence: ${state.student.confidence || 5}/10
 ` +
-    `PathwayU Status: ${state.assessmentData?.status === 'complete' ? 'Completed (All 4 modules)' : (state.assessmentData?.completed_count > 0 ? `${state.assessmentData.completed_count}/4 completed` : 'Not completed')}${code}
+    `Career Explorer Status: ${state.assessmentData?.status === 'complete' ? 'Completed (All 4 modules)' : (state.assessmentData?.completed_count > 0 ? `${state.assessmentData.completed_count}/4 completed` : 'Not completed')}${code}
 ` +
     `Next Planned Appointment: ${state.student.followup || 'Career Explorer / Create Resume'}
 
@@ -1148,7 +1145,7 @@ function renderCopilotSuggestions() {
   if (!suggestions) return;
   suggestions.innerHTML = '';
   const prompts = state.currentTask === 'prepare'
-    ? (PREPARE_STEPS[state.currentStep]?.copilot || ['Help me prepare for this appointment', 'Explain PathwayU'])
+    ? (PREPARE_STEPS[state.currentStep]?.copilot || ['Help me prepare for this appointment', 'Explain Career Explorer'])
     : (WORKFLOW[state.currentStep]?.copilot || ['Suggest a question', 'Recommend next steps']);
 
   prompts.forEach(p => {
@@ -1267,13 +1264,6 @@ function bindEvents() {
     performStudentLookup(email);
   });
 
-  $('#career-lookup-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = $('#career-student-email')?.value.trim();
-    performStudentLookup(email);
-  });
-
-  $('#career-auth-button')?.addEventListener('click', launchCareerExplorerLogin);
   $('#prep-career-auth-btn')?.addEventListener('click', launchCareerExplorerLogin);
 
   const dropzone = $('#prep-pdf-dropzone');
