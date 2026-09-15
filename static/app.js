@@ -255,7 +255,7 @@ function updateRecommendation() {
       ? '<strong>Discuss both options:</strong> Clarify the student’s career direction, then choose Career Explorer or Create Resume together.'
       : 'If the student remains confident after discussion, consider a Create Resume appointment.';
   recommendationElement.className = `recommendation ${recommendationTone}`;
-  recommendationElement.innerHTML = `<div class="recommendation-label">Suggested Direction:</div><div class="recommendation-content"><div class="recommendation-guidance">${recommendation}</div><span class="recommendation-note">The mentor makes the final decision with the student.</span></div>`;
+  recommendationElement.innerHTML = `<div class="recommendation-label">Suggested Action:</div><div class="recommendation-content"><div class="recommendation-guidance">${recommendation}</div><span class="recommendation-note">The mentor makes the final decision with the student.</span></div>`;
 }
 
 function setCareerLookupResult(kind, title, details = []) {
