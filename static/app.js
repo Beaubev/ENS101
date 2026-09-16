@@ -1383,7 +1383,7 @@ function addMessage(role, text, responseId = '') {
   const article = document.createElement('article');
   article.className = `message ${role}`;
   const label = document.createElement('small');
-  label.textContent = role === 'assistant' ? 'Mentor Copilot' : 'You';
+  label.textContent = role === 'assistant' ? 'Mentor AI Help' : 'You';
   const body = document.createElement('div');
   body.className = 'message-body';
   if (role === 'assistant') {

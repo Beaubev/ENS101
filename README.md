@@ -9,7 +9,7 @@ A focused appointment workspace for Ensign College career mentors. It turns **EN
 - Non-sensitive session details and locally saved working notes
 - Copyable appointment summary with student and mentor next steps
 - In-context links to Ensign Connect, major groups, notification preferences, alumni, Career Explorer, and international-student support
-- Career Explorer AI launcher and Mentor Copilot support for questions, internship explanations, summaries, and follow-up drafts
+- Career Explorer AI launcher and Mentor AI Help support for questions, internship explanations, summaries, and follow-up drafts
 - Optional staff-authenticated lookup of a student's four Career Explorer assessment completion statuses
 - Built-in offline guidance, so the app is useful without an AI key
 - Privacy filters, rate limiting, and local feedback storage

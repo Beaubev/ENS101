@@ -7,7 +7,7 @@
     <meta name="description" content="A guided workspace for Ensign College ENS 101 mentor appointments." />
     <title>ENS 101 Mentor Desk</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=7" />
     <!-- Vercel Web Analytics -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -466,27 +466,27 @@
           </section>
         </main>
 
-        <aside id="copilot-panel" class="copilot-panel" aria-label="Mentor Copilot">
+        <aside id="copilot-panel" class="copilot-panel" aria-label="Mentor AI Help">
           <div class="copilot-header">
-            <div class="copilot-title"><span class="copilot-icon" aria-hidden="true">✦</span><div><strong>Mentor Copilot</strong><small id="service-status">Ready</small></div></div>
-            <button id="close-copilot" class="icon-button" type="button" aria-label="Close Mentor Copilot">×</button>
+            <div class="copilot-title"><span class="copilot-icon" aria-hidden="true">✦</span><div><strong>Mentor AI Help</strong><small id="service-status">Ready</small></div></div>
+            <button id="close-copilot" class="icon-button" type="button" aria-label="Close Mentor AI Help">×</button>
           </div>
           <div id="messages" class="messages" aria-live="polite"></div>
           <div id="suggestions" class="copilot-suggestions"></div>
           <form id="chat-form" class="copilot-composer">
-            <label class="sr-only" for="message-input">Ask Mentor Copilot</label>
+            <label class="sr-only" for="message-input">Ask Mentor AI Help</label>
             <textarea id="message-input" rows="2" placeholder="Ask for a question, referral, summary…"></textarea>
-            <button id="send-button" type="submit" aria-label="Send to Mentor Copilot"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+            <button id="send-button" type="submit" aria-label="Send to Mentor AI Help"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
           </form>
           <p class="copilot-privacy">Use general context only. Do not share protected student information.</p>
         </aside>
       </div>
 
-      <button id="open-copilot" class="copilot-fab" type="button" aria-label="Open Mentor Copilot"><span aria-hidden="true">✦</span><span>Mentor Copilot</span></button>
+      <button id="open-copilot" class="copilot-fab" type="button" aria-label="Open Mentor AI Help"><span aria-hidden="true">✦</span><span>Mentor AI Help</span></button>
 
       <div id="confirm-dialog" class="dialog-backdrop" hidden>
         <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-          <div class="dialog-icon" aria-hidden="true">↻</div><h2 id="dialog-title">Start a new appointment?</h2><p>This clears the current checklist, session details, notes, and Copilot conversation from this browser.</p>
+          <div class="dialog-icon" aria-hidden="true">↻</div><h2 id="dialog-title">Start a new appointment?</h2><p>This clears the current checklist, session details, notes, and Mentor AI Help conversation from this browser.</p>
           <div class="dialog-actions"><button id="cancel-reset" class="button secondary" type="button">Keep working</button><button id="confirm-reset" class="button danger" type="button">Clear and start new</button></div>
         </div>
       </div>
@@ -508,7 +508,7 @@
               <label for="suggestion-category">Category <span class="required-star">*</span></label>
               <select id="suggestion-category" required>
                 <option value="Appointment Guide">Appointment Guide & Checklist</option>
-                <option value="Mentor Copilot">Mentor Copilot AI</option>
+                <option value="Mentor AI Help">Mentor AI Help</option>
                 <option value="Ensign Connect">Ensign Connect Integration</option>
                 <option value="Internship Plan">Internship Plan / CAR 201</option>
                 <option value="Career Direction">Career Direction / Career Explorer</option>
