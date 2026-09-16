@@ -35,13 +35,15 @@ const WORKFLOW = [
   {
     id: 'begin', label: 'Begin', short: 'Welcome and set direction', duration: '3–5 min',
     title: 'Begin the appointment',
-    description: 'Open warmly, follow the prayer direction in the Appointment 1a guide, and learn the student’s major and career direction.',
+    description: 'Open warmly, follow the prayer direction in the Appointment 1a guide, learn the student’s major and career direction, and check confidence and Career Explorer progress.',
     tasks: [
       { id: 'begin-prayer', title: 'Open with prayer', detail: 'Follow the appointment guideline and your department’s current practice.' },
       { id: 'begin-major', title: 'Confirm the student’s major', detail: 'Enter the major or program above so later guidance is specific.' },
-      { id: 'begin-career', title: 'Ask about the student’s career direction', detail: 'Capture a short role or field—not sensitive personal information.' }
+      { id: 'begin-career', title: 'Ask about the student’s career direction', detail: 'Capture a short role or field—not sensitive personal information.' },
+      { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' },
+      { id: 'career-pathwayu', title: 'Check Career Explorer roadmap progress', detail: 'Ask whether the student completed the Career Explorer roadmap assessments and update the status above.', action: { label: 'Open Career Explorer', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } }
     ],
-    prompts: ['What is your major?', 'What type of career do you see yourself doing when you graduate?'],
+    prompts: ['What is your major?', 'What type of career do you see yourself doing when you graduate?', 'On a scale of 1–10, how sure are you about this career direction?', 'Have you completed the Career Explorer roadmap assessments?'],
     copilot: ['Give me a warm opening', 'Explain Appointment 1a', 'Suggest a career question']
   },
   {
@@ -78,15 +80,13 @@ const WORKFLOW = [
   {
     id: 'career-direction', label: 'Career direction', short: 'Confidence and next appointment', duration: '6–8 min',
     title: 'Choose the right career next step',
-    description: 'Use the 1–10 confidence question and Career Explorer roadmap status to decide whether the next appointment should focus on exploration or résumé creation.',
+    description: 'Review the career confidence and Career Explorer roadmap status to decide whether the next appointment should focus on exploration or résumé creation.',
     tasks: [
-      { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' },
-      { id: 'career-pathwayu', title: 'Check Career Explorer roadmap progress', detail: 'Ask whether the student completed the Career Explorer roadmap assessments and update the status above.', action: { label: 'Open Career Explorer', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } },
       { id: 'career-followup', title: 'Choose the next appointment type', detail: 'If the student is still exploring, plan a Career Explorer appointment. If confident, plan a Create Resume appointment.' },
       { id: 'career-roadmap2', title: 'If scheduling Create Resume appointment, show Roadmap 2, Steps 1-5', detail: 'Make sure the student knows what to complete before the next appointment.' },
       { id: 'career-action', title: 'Record a specific student action', detail: 'Add the agreed action and time frame in the appointment record below.' }
     ],
-    prompts: ['On a scale of 1–10, how sure are you about this career direction?', 'Have you completed the Career Explorer roadmap assessments?', 'What will you complete before our next appointment?'],
+    prompts: ['Which next appointment would serve you best?', 'What will you complete before our next appointment?'],
     copilot: ['Recommend the next appointment', 'Explain Career Explorer', 'Draft a student action step']
   },
   {
@@ -126,7 +126,8 @@ const defaultState = () => ({
     email: '',
     program: '',
     career: '',
-    confidence: '5',
+    confidence: '',
+    confidenceEngaged: false,
     roadmap: '',
     followup: ''
   },
@@ -229,7 +230,8 @@ async function loadAppointmentById(appId) {
           email: a.student_email || '',
           program: a.program || '',
           career: a.career || '',
-          confidence: a.confidence || '5',
+          confidence: (a.confidence !== null && a.confidence !== undefined && a.confidence !== '') ? String(a.confidence) : '',
+          confidenceEngaged: Boolean(a.confidence !== null && a.confidence !== undefined && a.confidence !== ''),
           roadmap: a.roadmap_status || '',
           followup: a.followup_track || ''
         },
@@ -438,7 +440,7 @@ function renderConnectStatus() {
   }
 
   if (recapConnect) {
-    recapConnect.textContent = c.checked ? (c.found ? 'Account Active' : 'No Account') : 'Not checked';
+    recapConnect.textContent = c.checked ? (c.found ? 'Account Active' : 'No Profile Created') : 'Not checked';
   }
 
   if (!pill || !text) return;
@@ -464,7 +466,7 @@ function renderConnectStatus() {
   } else {
     pill.className = 'connect-status-pill not_found';
     pill.querySelector('.status-icon').textContent = '✗';
-    text.textContent = 'No Ensign Connect Account Found';
+    text.textContent = 'No Profile Created';
     if (details) details.hidden = true;
   }
 }
@@ -491,14 +493,14 @@ function renderStatusBadges() {
   if (ecBadge) {
     const c = state.connectStatus || {};
     if (!c.checked) {
-      ecBadge.className = 'status-pill gray';
+      ecBadge.className = 'status-pill yellow';
       ecBadge.textContent = 'Not checked';
     } else if (c.found) {
       ecBadge.className = 'status-pill green';
       ecBadge.textContent = '✓ Account Found';
     } else {
       ecBadge.className = 'status-pill red';
-      ecBadge.textContent = '✗ No Account';
+      ecBadge.textContent = 'No Profile Created';
     }
   }
 }
@@ -739,12 +741,21 @@ function renderAppointmentWorkspace() {
 }
 
 function updateRecommendation() {
-  const confidence = Number(state.student.confidence || 5);
   const recommendationElement = $('#followup-recommendation');
   if (!recommendationElement) return;
 
   const out = $('#confidence-output');
-  if (out) out.textContent = confidence;
+  const engaged = Boolean(state.student.confidenceEngaged && state.student.confidence !== '');
+
+  if (!engaged) {
+    if (out) out.textContent = 'Not set';
+    recommendationElement.className = 'recommendation recommendation-unengaged';
+    recommendationElement.innerHTML = `<div class="recommendation-label">Suggested Action:</div><div class="recommendation-content"><div class="recommendation-guidance">Assess the student’s career confidence (1–10) using the slider above to determine the recommended action.</div><span class="recommendation-note">The mentor makes the final decision with the student.</span></div>`;
+    return;
+  }
+
+  const confidence = Number(state.student.confidence);
+  if (out) out.textContent = `${confidence}/10`;
 
   const recommendationTone = confidence <= 5
     ? 'recommendation-low'
@@ -802,6 +813,7 @@ function bindSessionFields() {
           if (otherEl && otherEl !== el) otherEl.value = el.value;
         });
         if (key === 'confidence') {
+          state.student.confidenceEngaged = true;
           updateRecommendation();
           renderWorkflow();
         }
@@ -809,6 +821,17 @@ function bindSessionFields() {
       });
     });
   });
+
+  const confSlider = $('#career-confidence');
+  if (confSlider) {
+    confSlider.addEventListener('change', () => {
+      state.student.confidence = confSlider.value;
+      state.student.confidenceEngaged = true;
+      updateRecommendation();
+      renderWorkflow();
+      persistState();
+    });
+  }
 
   const roadmapSel = $('#roadmap-status');
   if (roadmapSel) {

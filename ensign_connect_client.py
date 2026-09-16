@@ -10,6 +10,7 @@ written to disk by this module.
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,41 @@ def _profile_dir() -> Path:
     return PERSISTENT_PROFILE_DIR
 
 
+def clean_stale_profile_locks() -> bool:
+    """Clean up stale Chromium SingletonLock files left by an unclean shutdown."""
+    pdir = _profile_dir()
+    lock_path = pdir / "SingletonLock"
+    if not (lock_path.is_symlink() or lock_path.exists()):
+        return True
+
+    is_stale = False
+    try:
+        target = os.readlink(lock_path)
+        match = re.search(r"-(\d+)$", target)
+        if match:
+            pid = int(match.group(1))
+            try:
+                os.kill(pid, 0)
+                # Process is actively running
+                return False
+            except OSError:
+                # Process is dead
+                is_stale = True
+    except Exception:
+        is_stale = True
+
+    if is_stale:
+        for fname in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
+            fpath = pdir / fname
+            try:
+                if fpath.is_symlink() or fpath.exists():
+                    fpath.unlink(missing_ok=True)
+            except Exception as e:
+                print(f"[clean_stale_profile_locks] Error removing {fname}: {e}")
+        return True
+    return False
+
+
 def _looks_like_login(page) -> bool:
     current_url = page.url.lower()
     return (
@@ -58,6 +94,8 @@ def check_connect_session() -> dict[str, Any]:
             "message": "Ensign Connect lookup needs the optional Playwright setup.",
         }
 
+    clean_stale_profile_locks()
+
     try:
         with sync_playwright() as playwright:
             context = playwright.chromium.launch_persistent_context(
@@ -68,13 +106,16 @@ def check_connect_session() -> dict[str, Any]:
             )
             try:
                 page = context.pages[0] if context.pages else context.new_page()
-                page.goto(CONNECT_ADMIN_URL, wait_until="networkidle", timeout=15000)
-                page.wait_for_timeout(1000)
-                authenticated = not _looks_like_login(page)
+                page.goto(CONNECT_ADMIN_URL, wait_until="domcontentloaded", timeout=15000)
+                page.wait_for_timeout(1500)
+                current_url = page.url.lower()
+                is_login = _looks_like_login(page)
+                authenticated = (not is_login) and ("peoplegrove.com" in current_url)
                 return {
                     "authenticated": authenticated,
                     "available": True,
                     "status": "authenticated" if authenticated else "auth_required",
+                    "current_url": page.url,
                     "message": (
                         "Ensign Connect admin session is ready."
                         if authenticated
@@ -82,10 +123,16 @@ def check_connect_session() -> dict[str, Any]:
                     ),
                 }
             finally:
-                context.close()
+                try:
+                    context.close()
+                except Exception:
+                    pass
+                clean_stale_profile_locks()
     except Exception as error:
         message = str(error)
         if any(marker in message for marker in ("SingletonLock", "already in use", "ProcessSingleton")):
+            if clean_stale_profile_locks():
+                return check_connect_session()
             return {
                 "authenticated": False,
                 "available": True,
@@ -97,7 +144,7 @@ def check_connect_session() -> dict[str, Any]:
             "authenticated": False,
             "available": True,
             "status": "error",
-            "message": "Ensign Connect session could not be verified.",
+            "message": f"Ensign Connect session could not be verified: {error}",
         }
 
 
@@ -105,6 +152,8 @@ def launch_connect_login() -> None:
     """Open a headed browser for the mentor to complete PeopleGrove SSO authentication."""
     if not HAVE_PLAYWRIGHT:
         raise RuntimeError("Playwright is not installed.")
+
+    clean_stale_profile_locks()
 
     with sync_playwright() as playwright:
         context = playwright.chromium.launch_persistent_context(
@@ -120,7 +169,11 @@ def launch_connect_login() -> None:
             while context.pages:
                 page.wait_for_timeout(1000)
         finally:
-            context.close()
+            try:
+                context.close()
+            except Exception:
+                pass
+            clean_stale_profile_locks()
 
 
 def lookup_student_connect(email: str) -> dict[str, Any]:
@@ -136,6 +189,7 @@ def lookup_student_connect(email: str) -> dict[str, Any]:
             "message": "Ensign Connect lookup needs the optional Playwright setup.",
         }
 
+    clean_stale_profile_locks()
     session = check_connect_session()
     if not session.get("authenticated"):
         return {
@@ -155,8 +209,8 @@ def lookup_student_connect(email: str) -> dict[str, Any]:
             )
             try:
                 page = context.pages[0] if context.pages else context.new_page()
-                page.goto(CONNECT_USERS_URL, wait_until="networkidle", timeout=20000)
-                page.wait_for_timeout(1500)
+                page.goto(CONNECT_USERS_URL, wait_until="domcontentloaded", timeout=20000)
+                page.wait_for_timeout(2000)
 
                 if _looks_like_login(page):
                     return {
@@ -232,16 +286,20 @@ def lookup_student_connect(email: str) -> dict[str, Any]:
                     ),
                 }
             finally:
-                context.close()
+                try:
+                    context.close()
+                except Exception:
+                    pass
+                clean_stale_profile_locks()
     except PlaywrightTimeoutError:
         return {
             "found": False,
             "status": "timeout",
             "message": "Ensign Connect took too long to respond. Please try again.",
         }
-    except Exception:
+    except Exception as error:
         return {
             "found": False,
             "status": "error",
-            "message": "The Ensign Connect lookup could not be completed.",
+            "message": f"The Ensign Connect lookup could not be completed: {error}",
         }

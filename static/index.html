@@ -7,7 +7,7 @@
     <meta name="description" content="A guided workspace for Ensign College ENS 101 mentor appointments." />
     <title>ENS 101 Mentor Desk</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
     <!-- Vercel Web Analytics -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -356,7 +356,7 @@
                   <label><span>Preferred name</span><input id="student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
                   <label><span>Major or program</span><input id="student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
                   <label><span>Career direction</span><input id="career-direction" type="text" autocomplete="off" placeholder="e.g., UX designer" maxlength="100" /></label>
-                  <label class="confidence-field"><span>Career confidence: <output id="confidence-output" for="career-confidence">5</output>/10</span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
+                  <label class="confidence-field"><span>Career confidence: <output id="confidence-output" for="career-confidence">Not set</output></span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
                   <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
                   <label><span>Next appointment</span><select id="followup-track"><option value="">Decide during appointment</option><option>Career Explorer follow-up</option><option>Create Resume appointment</option><option>No follow-up scheduled</option></select></label>
                 </div>
@@ -368,7 +368,7 @@
                   </div>
                   <div class="status-badge-item">
                     <span class="badge-label">Ensign Connect:</span>
-                    <span id="badge-ensign-connect" class="status-pill gray">Not checked</span>
+                    <span id="badge-ensign-connect" class="status-pill yellow">Not checked</span>
                   </div>
                 </div>
                 <div id="followup-recommendation" class="recommendation" aria-live="polite"></div>
@@ -544,6 +544,6 @@
 
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
   </body>
 </html>

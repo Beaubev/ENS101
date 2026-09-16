@@ -331,19 +331,20 @@ input.required-incomplete {
 .connect-action-group { display: flex; align-items: center; gap: 10px; }
 .timestamp-subtext { color: #64748b; font-size: 11px; font-weight: 600; }
 .connect-status-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 12px; }
-.connect-status-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-.connect-status-pill.found { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-.connect-status-pill.not_found { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-.connect-status-pill.pending { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.connect-status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 20px; font-size: 13.5px; font-weight: 750; }
+.connect-status-pill.found { background: #dcfce7; color: #14532d; border: 1.5px solid #22c55e; }
+.connect-status-pill.not_found { background: #fee2e2; color: #991b1b; border: 1.5px solid #ef4444; }
+.connect-status-pill.pending { background: #fef9c3; color: #713f12; border: 1.5px solid #eab308; }
 
 /* B7: Status Badges Row in Task 2 Session Details */
-.status-badges-row { display: flex; align-items: center; gap: 20px; margin-top: 14px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; flex-wrap: wrap; }
-.status-badge-item { display: inline-flex; align-items: center; gap: 8px; }
-.badge-label { color: #475569; font-size: 11.5px; font-weight: 700; }
-.status-pill { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 750; }
-.status-pill.green { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-.status-pill.red { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-.status-pill.gray { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+.status-badges-row { display: flex; align-items: center; gap: 24px; margin-top: 14px; padding: 10px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; flex-wrap: wrap; }
+.status-badge-item { display: inline-flex; align-items: center; gap: 10px; }
+.badge-label { color: #1e293b; font-size: 14px; font-weight: 800; }
+.status-pill { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 14px; font-size: 13.5px; font-weight: 750; }
+.status-pill.green { background: #dcfce7; color: #14532d; border: 1.5px solid #22c55e; }
+.status-pill.red { background: #fee2e2; color: #991b1b; border: 1.5px solid #ef4444; }
+.status-pill.yellow { background: #fef08a; color: #713f12; border: 1.5px solid #eab308; }
+.status-pill.gray { background: #f1f5f9; color: #334155; border: 1.5px solid #cbd5e1; }
 .career-lookup-form { display: grid; grid-template-columns: minmax(230px, 1fr) auto; align-items: end; gap: 10px; margin-top: 13px; }
 .career-lookup-form .button { height: 42px; }
 .career-lookup-privacy { margin: 8px 0 0; color: var(--muted); font-size: 9.5px; line-height: 1.45; }
@@ -352,15 +353,16 @@ input.required-incomplete {
 .career-lookup-result.success { border-color: #bddbcd; color: #315f4b; background: #f3faf6; }
 .career-lookup-result.warning { border-color: #e5d7ba; color: #66552c; background: #fcf8ef; }
 .career-lookup-result.error { border-color: #e7c5c5; color: #7d3636; background: #fff7f7; }
-.recommendation { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px; margin-top: 15px; color: #111827; font-size: 13px; line-height: 1.45; }
-.recommendation-label { display: flex; align-items: center; padding: 10px 14px; border: 1px solid #d4a72c; border-radius: 8px; color: #111827; background: #f7cf58; font-size: 13.5px; font-weight: 850; }
-.recommendation-content { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 14px; border: 1px solid #9ca3af; border-left-width: 4px; border-radius: 8px; color: #111827; background: #e5e7eb; font-size: 13px; transition: background-color .18s ease, border-color .18s ease; }
-.recommendation-guidance { color: #111827; font-size: 13px; }
-.recommendation-guidance strong { color: #111827; }
-.recommendation-note { flex: 0 0 auto; color: #111827; font-size: 11px; }
-.recommendation-low .recommendation-content { border-color: #9ca3af; border-left-color: #111827; background: #e5e7eb; }
-.recommendation-medium .recommendation-content { border-color: #f59e0b; border-left-color: #d97706; background: #fed7aa; }
-.recommendation-high .recommendation-content { border-color: #3b82f6; border-left-color: #2563eb; background: #dbeafe; }
+.recommendation { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px; margin-top: 16px; color: #0f172a; font-size: 16px; line-height: 1.55; }
+.recommendation-label { display: flex; align-items: center; padding: 12px 18px; border: 1.5px solid #d4a72c; border-radius: 8px; color: #111827; background: #f7cf58; font-size: 16px; font-weight: 850; letter-spacing: -0.01em; }
+.recommendation-content { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 20px; border: 1.5px solid #cbd5e1; border-left-width: 5px; border-radius: 8px; color: #0f172a; background: #ffffff; font-size: 16px; line-height: 1.55; transition: background-color .18s ease, border-color .18s ease; }
+.recommendation-guidance { color: #0f172a; font-size: 16px; line-height: 1.55; font-weight: 500; }
+.recommendation-guidance strong { color: #0f172a; font-weight: 850; }
+.recommendation-note { flex: 0 0 auto; color: #334155; font-size: 13.5px; font-weight: 650; }
+.recommendation-unengaged .recommendation-content { border-color: #cbd5e1; border-left-color: #94a3b8; background: #ffffff; color: #0f172a; }
+.recommendation-low .recommendation-content { border-color: #f87171; border-left-color: #dc2626; background: #fef2f2; color: #0f172a; }
+.recommendation-medium .recommendation-content { border-color: #facc15; border-left-color: #ca8a04; background: #fefce8; color: #0f172a; }
+.recommendation-high .recommendation-content { border-color: #86efac; border-left-color: #16a34a; background: #f0fdf4; color: #0f172a; }
 .appointment-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(290px, .8fr); gap: 20px; align-items: start; }
 .task-card { padding: 22px; }
 .count-badge { padding: 5px 9px; border-radius: 15px; color: var(--muted); background: var(--blue-50); font-size: 10px; font-weight: 750; }
