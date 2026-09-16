@@ -35,15 +35,14 @@ const WORKFLOW = [
   {
     id: 'begin', label: 'Begin', short: 'Welcome and set direction', duration: '3–5 min',
     title: 'Begin the appointment',
-    description: 'Open warmly, follow the prayer direction in the Appointment 1a guide, learn the student’s major and career direction, and check confidence and Career Explorer progress.',
+    description: 'Open warmly, follow the prayer direction in the Appointment 1a guide, learn the student’s major and career direction, and check confidence.',
     tasks: [
       { id: 'begin-prayer', title: 'Open with prayer', detail: 'Follow the appointment guideline and your department’s current practice.' },
       { id: 'begin-major', title: 'Confirm the student’s major', detail: 'Enter the major or program above so later guidance is specific.' },
       { id: 'begin-career', title: 'Ask about the student’s career direction', detail: 'Capture a short role or field—not sensitive personal information.' },
-      { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' },
-      { id: 'career-pathwayu', title: 'Check Career Explorer roadmap progress', detail: 'Ask whether the student completed the Career Explorer roadmap assessments and update the status above.', action: { label: 'Open Career Explorer', url: 'https://ensign.pathwayu.com/login?next=%2Fresults' } }
+      { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' }
     ],
-    prompts: ['What is your major?', 'What type of career do you see yourself doing when you graduate?', 'On a scale of 1–10, how sure are you about this career direction?', 'Have you completed the Career Explorer roadmap assessments?'],
+    prompts: ['What is your major?', 'What type of career do you see yourself doing when you graduate?', 'On a scale of 1–10, how sure are you about this career direction?'],
     copilot: ['Give me a warm opening', 'Explain Appointment 1a', 'Suggest a career question']
   },
   {
