@@ -1,4 +1,10 @@
 const STORAGE_KEY = 'ens101-mentor-desk-appointment-1a-v2';
+const CONVERSATION_NOTE_TAG = '#SSTEAM';
+
+function withConversationNoteTag(value = '') {
+  const body = String(value).replaceAll(CONVERSATION_NOTE_TAG, '').replace(/^\r?\n/, '');
+  return body ? `${CONVERSATION_NOTE_TAG}\n${body}` : CONVERSATION_NOTE_TAG;
+}
 
 const WORKFLOW = [
   {
@@ -89,7 +95,7 @@ const RESOURCES = [
 const defaultState = () => ({
   currentStep: 0, checked: {},
   student: { name: '', program: '', career: '', confidence: '5', roadmap: '', followup: '' },
-  notes: '', studentNext: '', mentorFollow: '', chatHistory: []
+  notes: CONVERSATION_NOTE_TAG, studentNext: '', mentorFollow: '', chatHistory: []
 });
 
 let state = loadState();
@@ -103,7 +109,9 @@ const $$ = (selector) => [...document.querySelectorAll(selector)];
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...defaultState(), ...saved, student: { ...defaultState().student, ...(saved?.student || {}) } };
+    const loaded = { ...defaultState(), ...saved, student: { ...defaultState().student, ...(saved?.student || {}) } };
+    loaded.notes = withConversationNoteTag(loaded.notes);
+    return loaded;
   } catch { return defaultState(); }
 }
 
@@ -237,7 +245,20 @@ function bindSessionFields() {
   });
   [['#session-notes', 'notes'], ['#student-next-step', 'studentNext'], ['#mentor-follow-up', 'mentorFollow']].forEach(([selector, key]) => {
     const element = $(selector); element.value = state[key];
-    element.addEventListener('input', () => { state[key] = element.value; persistState(); });
+    element.addEventListener('input', () => {
+      if (key === 'notes') {
+        const cursor = element.selectionStart;
+        const normalized = withConversationNoteTag(element.value);
+        if (normalized !== element.value) {
+          const offset = normalized.length - element.value.length;
+          element.value = normalized;
+          const nextCursor = Math.max(CONVERSATION_NOTE_TAG.length, cursor + offset);
+          element.setSelectionRange(nextCursor, nextCursor);
+        }
+      }
+      state[key] = element.value;
+      persistState();
+    });
   });
   updateRecommendation();
 }
@@ -384,7 +405,7 @@ async function lookupCareerExplorer(event) {
 
 function buildSummary() {
   const completedLabels = WORKFLOW.flatMap(step => step.tasks).filter(task => state.checked[task.id]).map(task => `- ${task.title}`).join('\n');
-  return `ENS 101 APPOINTMENT 1a SUMMARY\n\nStudent preferred name: ${state.student.name || 'Not entered'}\nMajor or program: ${state.student.program || 'Not entered'}\nCareer direction: ${state.student.career || 'Not entered'}\nCareer confidence: ${state.student.confidence || '5'}/10\nMajor & Career Exploration: ${state.student.roadmap || 'Not selected'}\nNext appointment: ${state.student.followup || 'Not selected'}\n\nCONVERSATION NOTES\n${state.notes || 'No notes entered.'}\n\nSTUDENT NEXT STEP\n${state.studentNext || 'Not entered.'}\n\nMENTOR FOLLOW-UP\n${state.mentorFollow || 'Not entered.'}\n\nCOMPLETED APPOINTMENT TASKS\n${completedLabels || 'None marked complete.'}\n\nPrivacy reminder: Keep this summary only in an approved location and follow applicable student-record policies.`;
+  return `ENS 101 APPOINTMENT 1a SUMMARY\n\nStudent preferred name: ${state.student.name || 'Not entered'}\nMajor or program: ${state.student.program || 'Not entered'}\nCareer direction: ${state.student.career || 'Not entered'}\nCareer confidence: ${state.student.confidence || '5'}/10\nMajor & Career Exploration: ${state.student.roadmap || 'Not selected'}\nNext appointment: ${state.student.followup || 'Not selected'}\n\nCONVERSATION NOTES\n${withConversationNoteTag(state.notes)}\n\nSTUDENT NEXT STEP\n${state.studentNext || 'Not entered.'}\n\nMENTOR FOLLOW-UP\n${state.mentorFollow || 'Not entered.'}\n\nCOMPLETED APPOINTMENT TASKS\n${completedLabels || 'None marked complete.'}\n\nPrivacy reminder: Keep this summary only in an approved location and follow applicable student-record policies.`;
 }
 
 async function copyText(text, successMessage) {
@@ -519,6 +540,7 @@ function resetAppointment() {
 
 function bindStateToInputs() {
   $('#student-name').value = state.student.name; $('#student-program').value = state.student.program; $('#career-direction').value = state.student.career; $('#career-confidence').value = state.student.confidence; $('#roadmap-status').value = state.student.roadmap; $('#followup-track').value = state.student.followup;
+  state.notes = withConversationNoteTag(state.notes);
   $('#session-notes').value = state.notes; $('#student-next-step').value = state.studentNext; $('#mentor-follow-up').value = state.mentorFollow;
   updateRecommendation();
 }
