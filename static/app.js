@@ -512,10 +512,18 @@ function validatePrepStep1(showError = false) {
   const emailVal = emailInput?.value.trim() || '';
   const isValid = Boolean(emailVal) && /^[^@\s]+@ensign\.edu$/i.test(emailVal);
 
-  if (!isValid && showError) {
+  if (emailVal.length === 0) {
+    if (showError) {
+      if (emailInput) emailInput.classList.add('required-incomplete');
+      if (errorMsg) errorMsg.hidden = false;
+    } else {
+      if (emailInput) emailInput.classList.remove('required-incomplete');
+      if (errorMsg) errorMsg.hidden = true;
+    }
+  } else if (!isValid) {
     if (emailInput) emailInput.classList.add('required-incomplete');
     if (errorMsg) errorMsg.hidden = false;
-  } else if (isValid) {
+  } else {
     if (emailInput) emailInput.classList.remove('required-incomplete');
     if (errorMsg) errorMsg.hidden = true;
   }
@@ -909,7 +917,7 @@ async function checkCareerExplorerSession() {
         status.textContent = 'Optional setup needed';
         status.className = 'career-session-status warning';
       } else if (data.authenticated) {
-        status.textContent = 'Career Explorer ready';
+        status.textContent = 'Career Explorer service connected';
         status.className = 'career-session-status ready';
       } else {
         status.textContent = data.in_progress ? 'Sign in in open window' : 'SSO login needed';
@@ -946,7 +954,7 @@ async function checkEnsignConnectSession() {
         statusEl.textContent = 'Optional setup needed';
         statusEl.className = 'career-session-status warning';
       } else if (data.authenticated) {
-        statusEl.textContent = 'Ensign Connect ready';
+        statusEl.textContent = 'Ensign Connect service connected';
         statusEl.className = 'career-session-status ready';
       } else {
         statusEl.textContent = data.in_progress ? 'Sign in in open window' : 'SSO login needed';
@@ -1048,6 +1056,16 @@ async function performStudentLookup(email) {
     feedback.textContent = '1/2: Checking Career Explorer assessments…';
     feedback.hidden = false;
   }
+  const ceBadge = $('#badge-career-explorer');
+  if (ceBadge) {
+    ceBadge.className = 'status-pill yellow';
+    ceBadge.textContent = 'Checking…';
+  }
+  const ecBadge = $('#badge-ensign-connect');
+  if (ecBadge) {
+    ecBadge.className = 'status-pill yellow';
+    ecBadge.textContent = 'Checking…';
+  }
 
   showToast('1/2: Checking Career Explorer…');
   let ceSuccess = false;
@@ -1092,6 +1110,12 @@ async function performStudentLookup(email) {
   const ecMsg = ecSuccess ? 'Ensign Connect checked' : (ecResult.message || 'Ensign Connect failed');
 
   // Summary message based on partial or full success
+      if (ceSuccess) {
+      if (prepChatHistory.length === 0) {
+        sendPrepChatMessage("Synthesize this student's assessment report into an executive briefing for my coaching session.");
+      }
+    }
+
   if (ceSuccess && ecSuccess) {
     showToast('✓ Career Explorer & Ensign Connect both updated!');
   } else if (ceSuccess && !ecSuccess) {
@@ -1788,6 +1812,154 @@ async function init() {
   loadServiceStatus();
   checkCareerExplorerSession();
   checkEnsignConnectSession();
+  initPrepChat();
 }
 
 init();
+
+
+// ==========================================================================
+// Career Explorer Mentor Coach AI Chat Window (Task 1 Prepare Step 2)
+// ==========================================================================
+
+let prepChatHistory = [];
+
+function appendPrepChatMessage(role, text) {
+  const container = $('#prep-chat-messages');
+  if (!container) return;
+
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `prep-chat-msg ${role}`;
+
+  if (role === 'user') {
+    msgDiv.textContent = text;
+  } else {
+    // Format assistant text with markdown formatting
+    const formatted = formatAssistantMessage(text);
+    const contentDiv = document.createElement('div');
+    contentDiv.innerHTML = formatted;
+    msgDiv.appendChild(contentDiv);
+
+    // Add Copy to Prep Notes action button
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'prep-chat-msg-actions';
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'prep-copy-notes-btn';
+    copyBtn.innerHTML = '📋 Copy to Step 3 Prep Notes';
+    copyBtn.addEventListener('click', () => {
+      copyToPrepNotes(text);
+    });
+    actionsDiv.appendChild(copyBtn);
+    msgDiv.appendChild(actionsDiv);
+  }
+
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+}
+
+function copyToPrepNotes(text) {
+  const textarea = $('#prep-notes-textarea');
+  if (!textarea) return;
+
+  // Clean markdown noise for plain text notes
+  const plain = text
+    .replace(/^###+\s*/gm, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .trim();
+
+  const current = textarea.value.trim();
+  const updated = current ? `${current}\n\n--- Career Explorer Coach Notes ---\n${plain}` : plain;
+  textarea.value = updated;
+  state.prepNotes = updated;
+  persistState();
+  showToast('✓ Added to Step 3 Prep Notes!');
+}
+
+async function sendPrepChatMessage(message, starterPrompt = null) {
+  const text = starterPrompt || message;
+  if (!text || !text.trim()) return;
+
+  appendPrepChatMessage('user', text);
+  prepChatHistory.push({ role: 'user', content: text });
+
+  // Add temporary typing bubble
+  const container = $('#prep-chat-messages');
+  let typingBubble = null;
+  if (container) {
+    typingBubble = document.createElement('div');
+    typingBubble.className = 'prep-chat-msg assistant typing-indicator';
+    typingBubble.textContent = 'Analyzing assessment…';
+    container.appendChild(typingBubble);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        mode: 'step2',
+        assessment_data: state.assessmentData,
+        student: state.student,
+        history: prepChatHistory.slice(0, -1).slice(-8)
+      })
+    });
+    const data = await response.json();
+    if (typingBubble) typingBubble.remove();
+
+    if (data.reply) {
+      appendPrepChatMessage('assistant', data.reply);
+      prepChatHistory.push({ role: 'assistant', content: data.reply });
+
+      // Update engine label
+      const engineLabel = $('#prep-chat-engine-label');
+      if (engineLabel) {
+        if (data.engine === 'local' || data.engine === 'qwen') {
+          engineLabel.textContent = 'Qwen Local AI • Active';
+        } else if (data.engine === 'offline_python_engine' || data.engine === 'fallback') {
+          engineLabel.textContent = 'Offline Career Explorer Engine';
+        } else {
+          engineLabel.textContent = `${data.engine || 'AI'} • Active`;
+        }
+      }
+    } else {
+      appendPrepChatMessage('assistant', data.error || 'Could not generate guidance.');
+    }
+  } catch (err) {
+    if (typingBubble) typingBubble.remove();
+    appendPrepChatMessage('assistant', 'Error communicating with Career Explorer Mentor Coach AI.');
+  }
+}
+
+function initPrepChat() {
+  const form = $('#prep-chat-form');
+  const input = $('#prep-chat-input');
+  if (form && input) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = input.value.trim();
+      if (val) {
+        input.value = '';
+        sendPrepChatMessage(val);
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+  }
+
+  // Quick starters click handlers
+  $$('.prep-starter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prompt = btn.getAttribute('data-prompt');
+      sendPrepChatMessage(prompt);
+    });
+  });
+}

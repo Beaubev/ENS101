@@ -210,8 +210,6 @@ def lookup_student_connect(email: str) -> dict[str, Any]:
             try:
                 page = context.pages[0] if context.pages else context.new_page()
                 page.goto(CONNECT_USERS_URL, wait_until="domcontentloaded", timeout=20000)
-                page.wait_for_timeout(2000)
-
                 if _looks_like_login(page):
                     return {
                         "found": False,
@@ -219,33 +217,28 @@ def lookup_student_connect(email: str) -> dict[str, Any]:
                         "message": "The Ensign Connect admin session expired. Authenticate again.",
                     }
 
-                # Look for a search input on the Explore Users page
-                search_input = (
-                    page.locator('input[placeholder*="Search" i]')
-                    .or_(page.locator('input[type="search"]'))
-                    .or_(page.locator('input[placeholder*="email" i]'))
-                    .or_(page.locator('input[placeholder*="user" i]'))
-                    .first
-                )
+                try:
+                    search_input = page.wait_for_selector(
+                        'input[placeholder*="Search" i], input[type="search"], .ant-input',
+                        timeout=12000
+                    )
+                except Exception:
+                    search_input = None
 
-                if search_input.count() == 0:
-                    # Try clicking a search/filter button first
-                    filter_btn = page.locator('button:has-text("Search"), button:has-text("Filter")').first
-                    if filter_btn.count() > 0:
-                        filter_btn.click()
-                        page.wait_for_timeout(1000)
-                        search_input = page.locator('input[placeholder*="Search" i], input[type="search"]').first
-
-                if search_input.count() == 0:
-                    return {
-                        "found": False,
-                        "status": "error",
-                        "message": "The Ensign Connect user search control was not found on the admin page.",
-                    }
+                if not search_input:
+                    loc = page.locator('input[placeholder*="Search" i], input[type="search"], .ant-input').first
+                    if loc.count() > 0:
+                        search_input = loc
+                    else:
+                        return {
+                            "found": False,
+                            "status": "error",
+                            "message": "The Ensign Connect user search control was not found on the admin page.",
+                        }
 
                 search_input.fill(normalized_email)
                 search_input.press("Enter")
-                page.wait_for_timeout(3000)
+                page.wait_for_timeout(3500)
 
                 # Check for matching results
                 page_content = page.content().lower()

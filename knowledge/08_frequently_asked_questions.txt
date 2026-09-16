@@ -1,0 +1,8 @@
+DOCUMENT: Frequently Asked Questions (FAQ) — Mentor Career & Major Exploration Coach
+PURPOSE: Authoritative answers to student and mentor technical and access questions.
+
+Question: I can't access the Career & Major Exploration Roadmap / Ensign Connect
+Response: Send an email to careerservices@ensign.edu or call 801-524-1925.
+
+Question: How do I download my Career Explorer report?
+Response: Log in to Career Explorer Assessment (https://ensign.pathwayu.com), complete all four assessments (Interests, Values, Personality, Workplace Preferences), and click the DOWNLOAD button next to PRINT at the top of the Assessments page.

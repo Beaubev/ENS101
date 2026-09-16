@@ -7,7 +7,7 @@
     <meta name="description" content="A guided workspace for Ensign College ENS 101 mentor appointments." />
     <title>ENS 101 Mentor Desk</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=9" />
+    <link rel="stylesheet" href="styles.css?v=11" />
     <!-- Vercel Web Analytics -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -104,11 +104,11 @@
                     </div>
                     <div class="career-session-controls">
                       <div class="auth-control-item">
-                        <span id="prep-career-session-status" class="career-session-status">Checking Career Explorer…</span>
+                        <span id="prep-career-session-status" class="career-session-status">Checking Career Explorer Service…</span>
                         <button id="prep-career-auth-btn" class="button secondary small auth-btn" type="button" hidden>Authenticate Career Explorer</button>
                       </div>
                       <div class="auth-control-item">
-                        <span id="prep-connect-session-status" class="career-session-status">Checking Ensign Connect…</span>
+                        <span id="prep-connect-session-status" class="career-session-status">Checking Ensign Connect Service…</span>
                         <button id="prep-connect-auth-btn" class="button secondary small auth-btn" type="button" hidden>Authenticate Ensign Connect</button>
                       </div>
                     </div>
@@ -286,6 +286,53 @@
                       <li>Compare their stated career direction with their assessment results to identify natural strengths and confidence gaps.</li>
                       <li>Highlight how certificate courses in their major can lead to an internship and early professional momentum.</li>
                     </ul>
+                  </div>
+
+                                    <!-- Career Explorer Mentor Coach AI Chat Window -->
+                  <div class="prep-chat-section" id="prep-chat-section">
+                    <div class="prep-chat-header">
+                      <div class="prep-chat-title-group">
+                        <span class="prep-chat-sparkle" aria-hidden="true">✦</span>
+                        <div>
+                          <h3 class="prep-chat-title">Career Explorer Mentor Coach AI</h3>
+                          <p class="prep-chat-subtitle">Ask questions, probe HEXACO traits, explore majors, and get tailored coaching strategies for this student.</p>
+                        </div>
+                      </div>
+                      <div class="prep-chat-engine-badge">
+                        <span class="engine-dot"></span>
+                        <span id="prep-chat-engine-label">Qwen Local AI • Active</span>
+                      </div>
+                    </div>
+
+                    <!-- Quick Starters Carousel -->
+                    <div class="prep-chat-starters" id="prep-chat-starters">
+                      <button type="button" class="prep-starter-btn" data-prompt="Synthesize this student's assessment report into an executive briefing for my coaching session.">✦ Executive Briefing</button>
+                      <button type="button" class="prep-starter-btn" data-prompt="What probing questions should I ask about this student's Holland Code and top values?">✦ 3 Probing Questions</button>
+                      <button type="button" class="prep-starter-btn" data-prompt="Which Ensign College majors and certificates best align with this student's assessment results?">✦ Aligned Ensign Degrees</button>
+                      <button type="button" class="prep-starter-btn" data-prompt="How do I guide this student through Design Thinking and sketching 3 Odyssey Plans?">✦ 3 Odyssey Plans</button>
+                      <button type="button" class="prep-starter-btn" data-prompt="How can I share Elder Keith B. McMullin's teachings on career as mission and financial success as an enabling factor?">✦ Elder McMullin: Career as Calling</button>
+                    </div>
+
+                    <!-- Message Feed -->
+                    <div class="prep-chat-messages" id="prep-chat-messages">
+                      <div class="prep-chat-msg assistant">
+                        <div>Welcome to the <strong>Career Explorer Mentor Coach AI</strong>. When you check or upload a student's Career Explorer assessment, I will synthesize their HEXACO personality traits, core values, workplace preferences, and Holland Code into an executive coaching briefing with tailored probing questions and degree alignments.</div>
+                      </div>
+                    </div>
+
+                    <!-- Chat Composer Form -->
+                    <form id="prep-chat-form" class="prep-chat-composer">
+                      <div class="prep-chat-input-row">
+                        <textarea id="prep-chat-input" rows="2" placeholder="Ask about this student's assessment (e.g. 'How should I coach them if they're hesitant about leadership?')..." aria-label="Ask Career Explorer Mentor Coach"></textarea>
+                        <button type="submit" id="prep-chat-send-btn" class="button primary prep-chat-send-btn">
+                          <span>Send</span>
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
+                      </div>
+                      <div class="prep-chat-footer-note">
+                        <span>🔒 Local AI on Mac Studio • Confidential student assessment analysis • Knowledge-grounded in Ensign College programs</span>
+                      </div>
+                    </form>
                   </div>
 
                   <div class="step-actions">
@@ -544,6 +591,6 @@
 
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=8"></script>
   </body>
 </html>

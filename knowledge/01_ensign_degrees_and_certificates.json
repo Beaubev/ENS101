@@ -1,0 +1,108 @@
+{
+  "institution": "Ensign College",
+  "source": "Doc 1: Ensign College Degrees and Certificates \u2014 Official Reference",
+  "categories": {
+    "ACCOUNTING AND FINANCE": [
+      {
+        "name": "Accounting Certificate",
+        "type": "Certificate"
+      },
+      {
+        "name": "Accounting AAS",
+        "type": "AAS",
+        "full_name": "Accounting (Associate of Applied Science)"
+      },
+      {
+        "name": "Accounting BAS",
+        "type": "BAS",
+        "full_name": "Accounting (Bachelor of Applied Science)"
+      },
+      {
+        "name": "Finance BAS",
+        "type": "BAS",
+        "full_name": "Finance (Bachelor of Applied Science)"
+      }
+    ],
+    "BUSINESS AND MANAGEMENT": [
+      {
+        "name": "Business Management BAS",
+        "type": "BAS",
+        "full_name": "Business Management (Bachelor of Applied Science)"
+      },
+      {
+        "name": "Project Management Certificate",
+        "type": "Certificate"
+      },
+      {
+        "name": "Project Management AAS",
+        "type": "AAS",
+        "full_name": "Project Management (Associate of Applied Science)"
+      },
+      {
+        "name": "Professional Sales Certificate",
+        "type": "Certificate"
+      },
+      {
+        "name": "Supply Chain Management Certificate",
+        "type": "Certificate"
+      }
+    ],
+    "MARKETING, COMMUNICATION, AND MEDIA": [
+      {
+        "name": "Marketing BAS",
+        "type": "BAS",
+        "full_name": "Marketing (Bachelor of Applied Science)"
+      },
+      {
+        "name": "Communication AAS",
+        "type": "AAS",
+        "full_name": "Communication (Associate of Applied Science)"
+      },
+      {
+        "name": "Communication BAS",
+        "type": "BAS",
+        "full_name": "Communication (Bachelor of Applied Science)"
+      },
+      {
+        "name": "Social Media Marketing Certificate",
+        "type": "Certificate"
+      }
+    ],
+    "INFORMATION TECHNOLOGY AND DIGITAL SYSTEMS": [
+      {
+        "name": "Information Technology AAS",
+        "type": "AAS",
+        "full_name": "Information Technology (Associate of Applied Science)"
+      },
+      {
+        "name": "Information Technology BAS",
+        "type": "BAS",
+        "full_name": "Information Technology (Bachelor of Applied Science)"
+      },
+      {
+        "name": "Technical Support Engineer Certificate",
+        "type": "Certificate"
+      },
+      {
+        "name": "Software Engineering Certificate",
+        "type": "Certificate"
+      },
+      {
+        "name": "Cybersecurity Certificate",
+        "type": "Certificate"
+      }
+    ],
+    "HOSPITALITY AND TOURISM": [
+      {
+        "name": "Hospitality and Tourism Management Certificate",
+        "type": "Certificate"
+      }
+    ]
+  },
+  "not_offered": [
+    "Clinical or licensed healthcare professions (Physician, Nurse Practitioner, Licensed Clinical Social Worker)",
+    "Law (Attorney, Paralegal with licensure)",
+    "Licensed mental health counseling or clinical psychology",
+    "Graduate or doctoral-level fields"
+  ]
+}
