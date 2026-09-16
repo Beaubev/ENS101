@@ -7,7 +7,7 @@
     <meta name="description" content="A guided workspace for Ensign College ENS 101 mentor appointments." />
     <title>ENS 101 Mentor Desk</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=7" />
+    <link rel="stylesheet" href="styles.css?v=8" />
     <!-- Vercel Web Analytics -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -54,11 +54,16 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7z"/><path d="M9 21h6"/></svg>
             <span>Suggest Improvement</span>
           </button>
-          <div id="ai-engine-badge" class="engine-indicator-pill engine-qwen" title="Active AI inference engine">
-            <span class="engine-indicator-dot"></span>
-            <span id="ai-engine-name">Qwen Local</span>
+          <div class="topbar-status-box" title="AI inference engine and autosave status">
+            <div id="ai-engine-badge" class="engine-indicator-pill engine-qwen">
+              <span class="engine-indicator-dot"></span>
+              <span id="ai-engine-name">Qwen Local</span>
+            </div>
+            <div class="autosave-status">
+              <span class="status-dot"></span>
+              <span id="save-status">Saved locally</span>
+            </div>
           </div>
-          <span class="autosave-status"><span class="status-dot"></span><span id="save-status">Saved locally</span></span>
           <button id="new-appointment" class="button new-student-btn" type="button" title="Start preparing a new student">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             <span>New Student</span>
