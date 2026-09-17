@@ -1,0 +1,203 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - link "ENS 101 Mentor Desk home" [ref=e4] [cursor=pointer]:
+      - /url: "#"
+      - generic [aria-hidden] [ref=e5]: E
+      - generic [ref=e6]:
+        - strong [ref=e7]: ENS 101
+        - generic [ref=e8]: Mentor Desk
+    - navigation "Main navigation" [ref=e9]:
+      - button "Tasks" [ref=e10] [cursor=pointer]
+      - button "Resources" [ref=e11] [cursor=pointer]
+    - generic [ref=e13]:
+      - generic [ref=e14]: "Student:"
+      - combobox "Student:" [ref=e19] [cursor=pointer]:
+        - option "+ New Student (Start Prep)" [selected]
+        - option "Unnamed Student"
+        - option "Rob (robbagley@ensign.edu)"
+        - option "Abby Walker (amw584@ensign.edu)"
+        - option "Mayra Hansen (may623@ensign.edu)"
+        - option "Rob (robbagley@ensign.edu)"
+        - option "Beverly Chapman (beverly.chapman@ensign.edu)"
+        - option "Unnamed Student"
+        - option "Unnamed Student (robbagley@ensign.edu)"
+        - option "Rob (robbagley@ensign.edu)"
+        - option "Nicholas Nunes (nmn065@ensign.edu)"
+        - option "mark (mark.baggaley@ensign.edu)"
+        - option "Rob Bagley (robbagley@ensign.edu)"
+        - option "Unnamed Student"
+        - option "Jorge (jib516@ensign.edu)"
+        - option "Jorge"
+        - option "Unnamed Student"
+        - option "Maria Santos (maria.santos@ensign.edu)"
+        - option "Unnamed Student"
+    - generic [ref=e20]:
+      - link "Open CIS AI Dashboard" [ref=e21] [cursor=pointer]:
+        - /url: http://127.0.0.1:5020/
+      - link "Open Ensign Internship Expert" [ref=e27] [cursor=pointer]:
+        - /url: http://127.0.0.1:5035/
+      - button "Suggest how to improve ENS 101 Mentor Desk" [ref=e31] [cursor=pointer]
+      - generic "AI inference engine and autosave status" [ref=e34]:
+        - generic [ref=e35]: Qwen Local
+        - generic [ref=e38]: Saved locally
+      - button "New Student" [ref=e41] [cursor=pointer]
+  - generic [ref=e45]:
+    - complementary "Appointment workflow" [ref=e46]:
+      - generic [ref=e47]:
+        - paragraph [ref=e48]: TASKS
+        - generic [ref=e49]:
+          - strong [ref=e50]: 0% complete
+          - generic [ref=e51]: 0 of 22
+      - navigation [ref=e53]:
+        - generic [ref=e54]:
+          - generic [ref=e55]: "Task 1: PREPARE"
+          - generic [ref=e56]: Active
+        - button "1 Assessment Determine Career Explorer completion" [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: "1"
+          - generic [ref=e59]:
+            - strong [ref=e60]: Assessment
+            - generic [ref=e61]: Determine Career Explorer completion
+        - button "2 Guidance Review tailored guidance" [ref=e62] [cursor=pointer]:
+          - generic [ref=e63]: "2"
+          - generic [ref=e64]:
+            - strong [ref=e65]: Guidance
+            - generic [ref=e66]: Review tailored guidance
+        - button "3 Prep Notes Type appointment notes" [ref=e67] [cursor=pointer]:
+          - generic [ref=e68]: "3"
+          - generic [ref=e69]:
+            - strong [ref=e70]: Prep Notes
+            - generic [ref=e71]: Type appointment notes
+        - generic [ref=e72]: "Task 2: APPOINTMENT"
+        - button "1 Begin Welcome and set direction" [ref=e74] [cursor=pointer]:
+          - generic [ref=e75]: "1"
+          - generic [ref=e76]:
+            - strong [ref=e77]: Begin
+            - generic [ref=e78]: Welcome and set direction
+        - button "2 Ensign Connect Join and explore the network" [ref=e79] [cursor=pointer]:
+          - generic [ref=e80]: "2"
+          - generic [ref=e81]:
+            - strong [ref=e82]: Ensign Connect
+            - generic [ref=e83]: Join and explore the network
+        - button "3 Internship plan Requirements and timing" [ref=e84] [cursor=pointer]:
+          - generic [ref=e85]: "3"
+          - generic [ref=e86]:
+            - strong [ref=e87]: Internship plan
+            - generic [ref=e88]: Requirements and timing
+        - button "4 Career direction Confidence and next appointment" [ref=e89] [cursor=pointer]:
+          - generic [ref=e90]: "4"
+          - generic [ref=e91]:
+            - strong [ref=e92]: Career direction
+            - generic [ref=e93]: Confidence and next appointment
+        - button "5 Complete Next step and selfie" [ref=e94] [cursor=pointer]:
+          - generic [ref=e95]: "5"
+          - generic [ref=e96]:
+            - strong [ref=e97]: Complete
+            - generic [ref=e98]: Next step and selfie
+      - generic [ref=e103]:
+        - strong [ref=e104]: Keep notes appropriate
+        - paragraph [ref=e105]: Do not enter student IDs, passwords, financial, health, or other sensitive details.
+    - main [ref=e106]:
+      - region "Appointment workspace" [ref=e107]:
+        - generic [ref=e108]:
+          - generic [ref=e109]:
+            - paragraph [ref=e110]: "TASK 1: PREPARE · STEP 1 OF 3"
+            - heading "Determine Career Explorer Assessment Completion" [level=1] [ref=e111]
+            - paragraph [ref=e112]: Enter the student’s @ensign.edu email to check completion across the four Career Explorer assessments, or upload their PDF report.
+          - generic [ref=e113]: Suggested time · 3–5 min
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - paragraph [ref=e119]: Student Profile & Career Explorer Lookup
+              - 'heading "Step 1: Check Major & Career Explorer Assessment" [level=2] [ref=e120]'
+            - generic [ref=e121]:
+              - generic [ref=e122]: Checking Career Explorer Service…
+              - generic [ref=e124]: Checking Ensign Connect Service…
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e128]: Preferred name
+              - textbox "Preferred name" [ref=e129]:
+                - /placeholder: e.g., Jordan
+            - generic [ref=e130]:
+              - generic [ref=e131]: Student @ensign.edu email *
+              - textbox "Student @ensign.edu email *" [ref=e133]:
+                - /placeholder: student.name@ensign.edu
+            - generic [ref=e134]:
+              - generic [ref=e135]: Major or program
+              - textbox "Major or program" [ref=e136]:
+                - /placeholder: e.g., Software Engineering
+            - generic [ref=e137]:
+              - generic [ref=e138]: Career direction
+              - textbox "Career direction" [ref=e139]:
+                - /placeholder: e.g., Full Stack Web Developer
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Student record and notes persist locally until the appointment is completed and confirmed recorded in Civitas.
+            - button "Check Explorer & Connect" [ref=e142] [cursor=pointer]
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - heading "Ensign Connect (PeopleGrove) Network Account" [level=3] [ref=e149]
+              - generic [ref=e150]:
+                - generic [ref=e151]: Not checked
+                - button "Check live" [ref=e152] [cursor=pointer]
+            - generic [ref=e157]:
+              - generic [ref=e158]: ⚪
+              - generic [ref=e159]: Account not checked yet
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - heading "Career Explorer Assessment Modules" [level=3] [ref=e162]
+              - generic [ref=e163]: 0 of 4 complete
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]: 🎯
+                  - strong [ref=e168]: Interests
+                - generic [ref=e169]: Not started
+                - paragraph [ref=e170]: Holland Code (RIASEC)
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - generic [ref=e173]: ⚖️
+                  - strong [ref=e174]: Values
+                - generic [ref=e175]: Not started
+                - paragraph [ref=e176]: Core Motivations
+              - generic [ref=e177]:
+                - generic [ref=e178]:
+                  - generic [ref=e179]: 💡
+                  - strong [ref=e180]: Personality
+                - generic [ref=e181]: Not started
+                - paragraph [ref=e182]: Work Traits
+              - generic [ref=e183]:
+                - generic [ref=e184]:
+                  - generic [ref=e185]: 🏢
+                  - strong [ref=e186]: Workplace Preferences
+                - generic [ref=e187]: Not started
+                - paragraph [ref=e188]: Environment Fit
+          - generic [ref=e190] [cursor=pointer]:
+            - generic [ref=e196]:
+              - strong [ref=e197]: Or Drag & Drop Student's Career Explorer PDF Report Here
+              - generic [ref=e198]: Drop the downloaded Career Explorer PDF report, or browse file
+            - button "browse file" [ref=e199]
+          - 'button "Continue to Step 2: Read Guidance →" [disabled] [ref=e201]'
+    - complementary "Mentor AI Help" [ref=e202]:
+      - generic [ref=e203]:
+        - generic [ref=e204]:
+          - generic [aria-hidden] [ref=e205]: ✦
+          - generic [ref=e206]:
+            - strong [ref=e207]: Mentor AI Help
+            - generic [ref=e208]: Ready
+        - button "Close Mentor AI Help" [ref=e209] [cursor=pointer]: ×
+      - article [ref=e211]:
+        - generic [ref=e212]: Mentor AI Help
+        - generic [ref=e213]: I’m here to support your preparation and appointment—not replace your judgment. Ask me for a thoughtful question, a resource match, or guidance.
+      - generic [ref=e214]:
+        - button "How do I explain Career Explorer?" [ref=e215] [cursor=pointer]
+        - button "What if a student hasn’t taken the assessments?" [ref=e216] [cursor=pointer]
+        - button "Explain the 4 Career Explorer assessments" [ref=e217] [cursor=pointer]
+      - generic [ref=e218]:
+        - generic [ref=e219]: Ask Mentor AI Help
+        - textbox "Ask Mentor AI Help" [ref=e220]:
+          - /placeholder: Ask for a question, referral, summary…
+        - button "Send to Mentor AI Help" [ref=e221] [cursor=pointer]
+      - paragraph [ref=e225]: Use general context only. Do not share protected student information.
+  - button "Open Mentor AI Help" [ref=e226] [cursor=pointer]:
+    - generic [aria-hidden] [ref=e227]: ✦
+    - generic [ref=e228]: Mentor AI Help
+  - status

@@ -22,6 +22,7 @@ import threading
 import time
 import uuid
 from collections import defaultdict
+from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -61,9 +62,17 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip()
 PORT = int(os.environ.get("PORT", "5050"))
 HOST = os.environ.get("HOST", "0.0.0.0")
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MIN", "50"))
+ENSIGN_CONNECT_CACHE_MAX_AGE_SECONDS = int(
+    os.environ.get("ENSIGN_CONNECT_CACHE_MAX_AGE_SECONDS", str(24 * 60 * 60))
+)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-DB_PATH = Path(__file__).resolve().parent / "feedback.db"
+_configured_db_path = os.environ.get("ENS101_DB_PATH", "").strip()
+DB_PATH = (
+    Path(_configured_db_path).expanduser()
+    if _configured_db_path
+    else Path(__file__).resolve().parent / "feedback.db"
+)
 ROOT_DIR = Path(__file__).resolve().parent
 
 try:
@@ -430,15 +439,27 @@ def get_appointment_by_id(appointment_id: str) -> dict | None:
 
 
 def get_ensign_connect_cache(email: str) -> dict | None:
+    """Return a cached account result only while it is within the daily refresh window."""
     normalized = email.strip().lower()
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM ensign_connect_cache WHERE student_email = ?", (normalized,))
         row = cursor.fetchone()
-        if row:
-            return dict(row)
-        return None
+        if not row:
+            return None
+
+        cached = dict(row)
+        try:
+            checked_at = datetime.strptime(
+                cached["checked_at"], "%Y-%m-%d %H:%M:%S UTC"
+            ).replace(tzinfo=timezone.utc)
+        except (KeyError, TypeError, ValueError):
+            # An unreadable timestamp must never make a stale result look current.
+            return None
+
+        age_seconds = (datetime.now(timezone.utc) - checked_at).total_seconds()
+        return cached if 0 <= age_seconds < ENSIGN_CONNECT_CACHE_MAX_AGE_SECONDS else None
 
 
 def set_ensign_connect_cache(email: str, has_account: bool, profile_url: str = None) -> dict:
@@ -906,6 +927,8 @@ Constraints:
    - Use exact program names from Doc 1. Distinguish between certificates, AAS, and BAS.
    - Use "Direct Preparation" or "Foundational Preparation" labels per Doc 2.
    - State clearly when Ensign does not offer a relevant program.
+8. Strengths-Based Personality Framing:
+   When describing HEXACO personality scores — especially lower scores — ALWAYS use strengths-based language. Never describe a trait score as a weakness, deficit, or problem. Low Emotional Stability = heightened empathy and deep attunement to others. Low Conscientiousness = flexibility, adaptability, and an organic work style. Low Extraversion = thoughtful independent focus and deliberate communication. Low Openness = grounded expertise and reliability. Frame every trait, at every level, as an asset when matched to the right environment and role.
 
 Official Degree List from Doc 1:
 - Accounting Certificate, Accounting AAS, Accounting BAS, Finance BAS
@@ -1034,9 +1057,9 @@ Guided by the mission of Ensign College, we help mentors develop students into c
 **{student_label}**
 
 #### 1. Personality Profile (HEXACO)
-- **Openness to Experience ({op_score}):** Reflects creative curiosity and intellectual receptivity. The student enjoys exploring novel perspectives and adapting to new learning environments.
-- **Extraversion ({ex_score}):** Demonstrates strong interpersonal energy, making collaborative team environments and client/student interaction energizing rather than draining.
-- **Emotional Stability ({es_score}):** Shows calm resilience under pressure, allowing the student to maintain perspective during demanding projects or transitions.
+- **Openness to Experience ({op_score}):** {"Reflects strong creative curiosity and intellectual versatility — the student genuinely enjoys exploring novel ideas, adapting to new environments, and seeing problems from fresh angles." if "high" in str(op_score).lower() else "Reflects a grounded, practical orientation — the student tends to build deep expertise in focused areas rather than spreading attention widely. This reliability and consistency is a valued asset in many professional roles." if "low" in str(op_score).lower() else "Reflects a balanced blend of creative curiosity and practical focus, allowing the student to explore new ideas while staying grounded in real-world application."}
+- **Extraversion ({ex_score}):** {"Demonstrates strong interpersonal energy — collaborative team environments, client interaction, and people-facing roles feel energizing rather than draining." if "high" in str(ex_score).lower() else "Reflects a thoughtful, independent work style — the student excels in roles requiring focused concentration, careful listening, and deliberate communication. Many high-performing technical and analytical professionals share this profile." if "low" in str(ex_score).lower() else "Reflects a versatile social style — the student can engage effectively in both collaborative team settings and independent, focused work."}
+- **Emotional Stability ({es_score}):** {"Shows calm resilience under pressure, allowing the student to maintain perspective during demanding projects or career transitions." if "high" in str(es_score).lower() else "Reflects a heightened empathy and responsiveness to others — the student is deeply attuned to feedback and relationships. When channeled through healthy boundaries and self-care routines, this sensitivity becomes a powerful asset in healthcare, counseling, education, and service roles." if "low" in str(es_score).lower() else "Shows solid emotional balance — able to respond thoughtfully to challenges while remaining connected to the needs and experiences of others."}
 
 #### 2. Workplace Preferences
 The student's primary preferences are **{prefs_text}**. In your mentoring session, help them evaluate potential employers based on whether the organizational culture provides supportive teamwork, ethical leadership, and transparent communication.

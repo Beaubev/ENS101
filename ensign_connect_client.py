@@ -107,7 +107,14 @@ def check_connect_session() -> dict[str, Any]:
             try:
                 page = context.pages[0] if context.pages else context.new_page()
                 page.goto(CONNECT_ADMIN_URL, wait_until="domcontentloaded", timeout=15000)
-                page.wait_for_timeout(1500)
+                # PeopleGrove can briefly retain the requested admin URL before
+                # its client-side auth redirect renders the sign-in form. Wait
+                # for that form so a new profile is never marked authenticated
+                # during the redirect race.
+                try:
+                    page.locator('input[type="password"]').wait_for(state="visible", timeout=3500)
+                except PlaywrightTimeoutError:
+                    pass
                 current_url = page.url.lower()
                 is_login = _looks_like_login(page)
                 authenticated = (not is_login) and ("peoplegrove.com" in current_url)

@@ -35,41 +35,26 @@ const WORKFLOW = [
   {
     id: 'begin', label: 'Begin', short: 'Welcome and set direction', duration: '3–5 min',
     title: 'Begin the appointment',
-    description: 'Open warmly, follow the prayer direction in the Appointment 1a guide, learn the student’s major and career direction, and check confidence.',
+    description: 'Open warmly, follow the prayer direction in the Appointment 1a guide, learn the student\'s major and career direction, and check confidence.',
     tasks: [
-      { id: 'begin-prayer', title: 'Open with prayer', detail: 'Follow the appointment guideline and your department’s current practice.' },
-      { id: 'begin-major', title: 'Confirm the student’s major', detail: 'Enter the major or program above so later guidance is specific.' },
-      { id: 'begin-career', title: 'Ask about the student’s career direction', detail: 'Capture a short role or field—not sensitive personal information.' },
-      { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above: 1 means very unsure and 10 means very confident.' }
+      { id: 'begin-prayer', title: 'Open with prayer', detail: 'Follow the appointment guideline and your department\'s current practice.' },
+      { id: 'begin-major', title: 'Confirm the student\'s major', detail: 'Enter the major or program above so later guidance is specific.' },
+      { id: 'begin-career', title: 'Ask about the student\'s career direction', detail: 'Capture a short role or field—not sensitive personal information.' },
+      { id: 'career-confidence', title: 'Ask the 1–10 confidence question', detail: 'Update the confidence slider above. 1 = Low confidence, 10 = Very Confident.' }
     ],
     prompts: ['What is your major?', 'What type of career do you see yourself doing when you graduate?', 'On a scale of 1–10, how sure are you about this career direction?'],
     copilot: ['Give me a warm opening', 'Explain Appointment 1a', 'Suggest a career question']
-  },
-  {
-    id: 'ensign-connect', label: 'Ensign Connect', short: 'Join and explore the network', duration: '10–12 min',
-    title: 'Set up Ensign Connect',
-    description: 'Help the student join Ensign Connect, find the group for their major, set notification preferences, and see how to connect with alumni.',
-    tasks: [
-      { id: 'connect-join', title: 'Open Ensign Connect and complete “Join Now”', detail: 'Use Ensign Connect Web Access, then help the student sign up.', action: { label: 'Open Ensign Connect', url: 'https://ces.peoplegrove.com/hub/ces/organizations/ensign-connect' } },
-      { id: 'connect-group', title: 'Join the group for the student’s major', detail: 'Choose Ensign College under Schools, open Groups, and select the matching major.', action: { label: 'Browse Ensign groups', url: 'https://ces.peoplegrove.com/hub/ces/groups?organization=19963' } },
-      { id: 'connect-features', title: 'Point out Members, Discussion, and Join', detail: 'Show the blue Members and Discussion links and the green Join control.' },
-      { id: 'connect-notifications', title: 'Review email and SMS preferences', detail: 'Open My Preferences and let the student choose which notifications to turn on or off.', action: { label: 'Open My Preferences', url: 'https://ces.peoplegrove.com/preferences/notifications' } },
-      { id: 'connect-community', title: 'Explore alumni and community members', detail: 'Show how the student can view alumni profiles and send an appropriate message.', action: { label: 'Explore the community', url: 'https://ces.peoplegrove.com/hub/ces/person' } },
-      { id: 'connect-interview', title: 'Review Informational Interview questions', detail: 'Go over Informational Interview handout and review questions on the back.', action: { label: 'Open Informational Interview handout', url: '/resources/informational-interview-handout.pdf' } },
-      { id: 'connect-certificates', title: 'Connect certificates to opportunities', detail: 'Explain how certificate courses can strengthen preparation for internships and employment.' }
-    ],
-    prompts: ['Which major group should we join?', 'Who is one alumnus whose career path you would like to learn about?', 'What could you ask in an informational interview?'],
-    copilot: ['Walk me through Ensign Connect', 'Draft an alumni message', 'Suggest interview questions']
   },
   {
     id: 'internship', label: 'Internship plan', short: 'Requirements and timing', duration: '8–10 min',
     title: 'Build an internship plan',
     description: 'Give the student a clear overview of the degree internship requirement, preparation timeline, course pairing, and where to verify special circumstances.',
     tasks: [
-      { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'The internship should relate to the student’s major; review the current internship information together.', action: { label: 'Open Internship Expert', url: '/internship/' } },
-      { id: 'internship-course', title: 'Explain the accompanying internship course', detail: 'The student will enroll in the appropriate internship class at the same time. Verify the current course with the student’s program.' },
+      { id: 'internship-requirement', title: 'Explain the degree internship requirement', detail: 'The internship should relate to the student\'s major; review the current internship information together.', action: { label: 'Open Internship Expert', url: '/internship/' } },
+      { id: 'internship-course', title: 'Explain the accompanying internship course', detail: 'The student will enroll in the appropriate internship class at the same time. Verify the current course with the student\'s program.' },
       { id: 'internship-international', title: 'Flag international-student planning', detail: 'Do not give immigration advice. Help international students verify current vacation-semester and work-authorization rules with the International Student Office.', action: { label: 'International Student Office', url: 'https://www.ensign.edu/international-students' } },
       { id: 'internship-pbwe', title: 'Explain the PBWE option carefully', detail: 'For on-campus students, CAR 398 PBWE provides real-world project experience and résumé value.' },
+      { id: 'internship-certificates', title: 'Connect certificates to opportunities', detail: 'Explain how certificate courses can strengthen preparation for internships and employment.' },
       { id: 'internship-timeline', title: 'Discuss application timing', detail: 'Large-company internships may recruit 6–9 months ahead; encourage early research.' },
       { id: 'internship-car201', title: 'Encourage early CAR 201 preparation', detail: 'The guide recommends taking CAR 201 as soon as appropriate so the student is ready when internships open.' }
     ],
@@ -77,27 +62,19 @@ const WORKFLOW = [
     copilot: ['Explain the internship timeline', 'Compare CAR 398, 399, and 499', 'Give an international-student caution']
   },
   {
-    id: 'career-direction', label: 'Career direction', short: 'Confidence and next appointment', duration: '6–8 min',
-    title: 'Choose the right career next step',
-    description: 'Review the career confidence and Career Explorer roadmap status to decide whether the next appointment should focus on exploration or résumé creation.',
+    id: 'complete', label: 'Wrap-up', short: 'Confidence, next appt, and selfie', duration: '6–8 min',
+    title: 'Wrap up the appointment',
+    description: 'Reassess the student\'s career confidence, choose the next appointment, confirm agreed actions, take the appointment selfie, and record notes.',
     tasks: [
+      { id: 'close-confidence', title: 'Re-check career confidence (1–10)', detail: 'Ask the student to update their confidence level after today\'s conversation. Adjust the slider if needed.' },
       { id: 'career-followup', title: 'Choose the next appointment type', detail: 'If the student is still exploring, plan a Career Explorer appointment. If confident, plan a Create Resume appointment.' },
-      { id: 'career-roadmap2', title: 'If scheduling Create Resume appointment, show Roadmap 2, Steps 1-5', detail: 'Make sure the student knows what to complete before the next appointment.' },
-      { id: 'career-action', title: 'Record a specific student action', detail: 'Add the agreed action and time frame in the appointment record below.' }
-    ],
-    prompts: ['Which next appointment would serve you best?', 'What will you complete before our next appointment?'],
-    copilot: ['Recommend the next appointment', 'Explain Career Explorer', 'Draft a student action step']
-  },
-  {
-    id: 'complete', label: 'Complete', short: 'Next step and selfie', duration: '2–4 min',
-    title: 'Complete the appointment',
-    description: 'Confirm the agreed next actions and finish the page 1 appointment checklist.',
-    tasks: [
+      { id: 'career-roadmap2', title: 'If scheduling Create Resume, show Roadmap 2, Steps 1–5', detail: 'Make sure the student knows what to complete before the next appointment.' },
+      { id: 'career-action', title: 'Record a specific student action', detail: 'Add the agreed action and time frame in the appointment record below.' },
       { id: 'close-nextsteps', title: 'Confirm both next steps', detail: 'Read back the student action and mentor follow-up recorded below.' },
-      { id: 'close-selfie', title: 'Take the appointment selfie', detail: 'Follow the Appointment 1a practice and obtain the student’s consent before taking or using a photo.' }
+      { id: 'close-selfie', title: 'Take the appointment selfie', detail: 'Follow the Appointment 1a practice and obtain the student\'s consent before taking or using a photo.' }
     ],
-    prompts: ['What is the first step you will take after today?', 'What support would you like from me?', 'When will you complete your next step?'],
-    copilot: ['Summarize next steps', 'Draft a follow-up message', 'Give me a closing question']
+    prompts: ['On a scale of 1–10, how confident do you feel now compared to when we started?', 'Which next appointment would serve you best?', 'What will you complete before our next appointment?', 'What is the first step you will take after today?'],
+    copilot: ['Recommend the next appointment', 'Summarize next steps', 'Draft a follow-up message', 'Give me a closing question']
   }
 ];
 
@@ -492,7 +469,7 @@ function renderStatusBadges() {
   if (ecBadge) {
     const c = state.connectStatus || {};
     if (!c.checked) {
-      ecBadge.className = 'status-pill yellow';
+      ecBadge.className = 'status-pill gray';
       ecBadge.textContent = 'Not checked';
     } else if (c.found) {
       ecBadge.className = 'status-pill green';
