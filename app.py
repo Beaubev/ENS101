@@ -7,6 +7,8 @@ is contacted unless it is explicitly configured in the environment.
 """
 
 import base64
+import hashlib
+import hmac
 import ipaddress
 import json
 import os
@@ -119,6 +121,135 @@ except ImportError:
 ENSIGN_EMAIL_PATTERN = re.compile(r"^[^@\s]+@ensign\.edu$", re.IGNORECASE)
 PATHWAYU_LOGIN_PROCESS = None
 CONNECT_LOGIN_PROCESS = None
+
+# ==============================================================================
+# STUDENT READINESS HUB CONSUMER CLIENT
+# ==============================================================================
+
+READINESS_HUB_URL = os.environ.get("READINESS_HUB_URL", "http://127.0.0.1:5055")
+READINESS_DATA_DIR = Path.home() / "Library" / "Application Support" / "Ensign Student Readiness Hub"
+READINESS_TOKEN_PATH = READINESS_DATA_DIR / "consumer-token"
+READINESS_KEY_PATH = READINESS_DATA_DIR / "fingerprint-key"
+SHARED_ONEDRIVE_SNAPSHOT = Path(
+    "/Users/robbagley/Library/CloudStorage/OneDrive-EnsignCollege"
+    "/2 - Areas ODrive/CIS - General/3 - Resources/Alumni/Ensign_Connect_DATA"
+    "/readiness_snapshot_v1.json"
+)
+
+def _get_readiness_token() -> str | None:
+    try:
+        if READINESS_TOKEN_PATH.exists():
+            token = READINESS_TOKEN_PATH.read_text(encoding="utf-8").strip()
+            if token:
+                return token
+    except Exception:
+        pass
+    return None
+
+def _get_readiness_fingerprint_key() -> bytes | None:
+    try:
+        if READINESS_KEY_PATH.exists():
+            key_bytes = READINESS_KEY_PATH.read_bytes().strip()
+            if len(key_bytes) == 32:
+                return key_bytes
+    except Exception:
+        pass
+    return None
+
+def _email_fingerprint(email: str, key: bytes) -> str:
+    norm = email.strip().lower()
+    return hmac.new(key, norm.encode("utf-8"), hashlib.sha256).hexdigest()
+
+def lookup_readiness_hub(email: str) -> dict | None:
+    """Queries the Student Readiness Hub consumer API, with fallback to shared OneDrive snapshot."""
+    norm_email = email.strip().lower()
+    token = _get_readiness_token()
+
+    # 1. Try local consumer API on port 5055
+    if token:
+        try:
+            url = f"{READINESS_HUB_URL}/api/v1/lookup"
+            payload = json.dumps({"email": norm_email, "refresh_pathwayu": False}).encode("utf-8")
+            req = Request(
+                url,
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Readiness-Token": token,
+                },
+                method="POST"
+            )
+            with urlopen(req, timeout=4.0) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    pg = data.get("peoplegrove", {})
+                    is_ready = bool(pg.get("authenticated") or pg.get("status") in ("authenticated", "current", "stale_match"))
+                    return {
+                        "email": norm_email,
+                        "peoplegrove_ready": is_ready,
+                        "peoplegrove": pg,
+                        "pathwayu": data.get("pathwayu"),
+                        "source": pg.get("source", "Student Readiness Hub API"),
+                        "checked_at": pg.get("checked_at") or data.get("checked_at"),
+                    }
+        except Exception:
+            pass
+
+    # 2. Fallback: Read shared atomic OneDrive snapshot
+    try:
+        if SHARED_ONEDRIVE_SNAPSHOT.exists():
+            key = _get_readiness_fingerprint_key()
+            if key:
+                fp = _email_fingerprint(norm_email, key)
+                with open(SHARED_ONEDRIVE_SNAPSHOT, "r", encoding="utf-8") as f:
+                    snapshot = json.load(f)
+                accounts = set(snapshot.get("accounts", []))
+                is_ready = fp in accounts
+                return {
+                    "email": norm_email,
+                    "peoplegrove_ready": is_ready,
+                    "peoplegrove": {"status": "current" if is_ready else "not_found", "authenticated": is_ready},
+                    "source": "OneDrive snapshot fallback",
+                    "checked_at": snapshot.get("generated_at", ""),
+                }
+    except Exception:
+        pass
+
+    return None
+
+def publish_pathwayu_result_to_hub(email: str, status: str, completed_count: int = 4, total: int = 4, missing: list | None = None) -> None:
+    """Asynchronously syncs definitive Career Explorer results to Student Readiness Hub cache."""
+    token = _get_readiness_token()
+    if not token:
+        return
+    norm_email = email.strip().lower()
+    stat = "complete" if status in ("complete", "success") else status
+    payload = json.dumps({
+        "email": norm_email,
+        "status": stat,
+        "completed_count": completed_count,
+        "total": total,
+        "missing": missing or [],
+    }).encode("utf-8")
+
+    def _post():
+        try:
+            url = f"{READINESS_HUB_URL}/api/v1/pathwayu-result"
+            req = Request(
+                url,
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Readiness-Token": token,
+                },
+                method="POST"
+            )
+            with urlopen(req, timeout=2.0) as resp:
+                pass
+        except Exception:
+            pass
+
+    threading.Thread(target=_post, daemon=True).start()
 
 # ==============================================================================
 # 2. LOCAL FEEDBACK & SUGGESTIONS DATABASE (SQLITE) & ADMIN CREDENTIALS
@@ -1594,6 +1725,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
 
             # If we already have a parsed report with complete status, return immediately
             if parsed_data and parsed_data.get("completed_count") == 4:
+                publish_pathwayu_result_to_hub(email, "complete", 4, 4, [])
                 result = {
                     "success": True,
                     "status": "complete",
@@ -1626,10 +1758,19 @@ class CoachHandler(SimpleHTTPRequestHandler):
                             result["status"] = "complete"
                             result["filename"] = pdf_file.name
                             result["download_url"] = f"/api/career-explorer/download-report?file={pdf_file.name}&name=Career_Explorer_Report_{clean_email_file}.pdf"
+                            publish_pathwayu_result_to_hub(email, "complete", 4, 4, [])
                         except Exception as ex:
                             print(f"[Downloaded PDF Parse Error] {ex}")
             elif lookup_student_completion:
                 result = lookup_student_completion(email)
+                if result.get("status") in ("complete", "incomplete", "not_found"):
+                    publish_pathwayu_result_to_hub(
+                        email,
+                        result.get("status"),
+                        result.get("completed_count", 0),
+                        result.get("total", 4),
+                        result.get("missing", [])
+                    )
                 if parsed_data:
                     result["parsed_data"] = parsed_data
             else:
@@ -1742,6 +1883,24 @@ class CoachHandler(SimpleHTTPRequestHandler):
                     })
                     return
 
+            # 1. Primary: Student Readiness Hub (authoritative PeopleGrove saved report datastore)
+            hub_result = lookup_readiness_hub(email)
+            if hub_result and "peoplegrove_ready" in hub_result:
+                is_ready = bool(hub_result["peoplegrove_ready"])
+                checked_at = hub_result.get("checked_at") or datetime.now(timezone.utc).isoformat()
+                cached_data = set_ensign_connect_cache(email, is_ready, None)
+                self._json({
+                    "found": is_ready,
+                    "status": "found" if is_ready else "not_found",
+                    "profile_url": None,
+                    "cached": False,
+                    "checked_at": cached_data.get("checked_at", checked_at),
+                    "source": hub_result.get("source", "Student Readiness Hub"),
+                    "message": "Student has an Ensign Connect account." if is_ready else "No Ensign Connect account found.",
+                })
+                return
+
+            # 2. Fallback: interactive browser lookup if installed
             if not lookup_student_connect:
                 self._json({
                     "status": "unavailable",

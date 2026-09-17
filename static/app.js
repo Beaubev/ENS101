@@ -1426,19 +1426,118 @@ function closeCopilot() {
 }
 
 function formatAssistantMessage(text) {
-  const escaped = String(text)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-  let formatted = escaped.replace(
-    /\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s\)"']+)\)/g,
-    (_match, label, rawUrl) => `<a href="${resolveSuiteUrl(rawUrl)}" target="_blank" rel="noopener noreferrer" class="chat-link">${label} &#8599;</a>`
-  );
-  formatted = formatted.replace(
-    /(^|[\s(])(https?:\/\/[^\s\)"']+)/g,
-    (_match, prefix, rawUrl) => `${prefix}<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="chat-link">${rawUrl} &#8599;</a>`
-  );
-  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  return formatted.replace(/\n/g, '<br>');
+  if (!text) return '';
+
+  const lines = String(text).split('\n');
+  let inList = false;
+  let listType = null; // 'ul' or 'ol'
+  let htmlParts = [];
+
+  function closeList() {
+    if (inList) {
+      htmlParts.push(`</${listType}>`);
+      inList = false;
+      listType = null;
+    }
+  }
+
+  function formatInline(str) {
+    let s = String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    // Markdown links: [label](url)
+    s = s.replace(
+      /\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s\)"']+)\)/g,
+      (_match, label, rawUrl) => `<a href="${resolveSuiteUrl(rawUrl)}" target="_blank" rel="noopener noreferrer" class="chat-link">${label} &#8599;</a>`
+    );
+
+    // Bare URLs
+    s = s.replace(
+      /(^|[\s(])(https?:\/\/[^\s\)"']+)/g,
+      (_match, prefix, rawUrl) => `${prefix}<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="chat-link">${rawUrl} &#8599;</a>`
+    );
+
+    // Bold: **text** (supports single asterisks inside words like O*NET)
+    s = s.replace(/\*\*((?:[^*]|\*(?!\*))+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: *text* or _text_ (when not surrounded by word characters)
+    s = s.replace(/(?<![*\w])\*([^*]+?)\*(?![*\w])/g, '<em>$1</em>');
+    s = s.replace(/(?<![_\w])_([^_]+?)_(?![_\w])/g, '<em>$1</em>');
+
+    return s;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    let rawLine = lines[i];
+    let line = rawLine.trim();
+
+    if (!line) {
+      closeList();
+      continue;
+    }
+
+    // 1. Markdown headings: ### Heading or #### Heading or ## Heading or # Heading
+    const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      closeList();
+      const level = Math.min(4, Math.max(2, headingMatch[1].length));
+      htmlParts.push(`<h${level}>${formatInline(headingMatch[2].trim())}</h${level}>`);
+      continue;
+    }
+
+    // 2. Standalone bold heading: **Heading** or **Heading:**
+    const boldHeadingMatch = line.match(/^\*\*([^*]+)\*\*:?$/);
+    if (boldHeadingMatch) {
+      closeList();
+      htmlParts.push(`<h3>${formatInline(boldHeadingMatch[1].trim())}</h3>`);
+      continue;
+    }
+
+    // 3. Unordered list: - Item or * Item
+    const ulMatch = line.match(/^[-*]\s+(.+)$/);
+    if (ulMatch && !line.startsWith('**')) {
+      if (!inList || listType !== 'ul') {
+        closeList();
+        htmlParts.push('<ul>');
+        inList = true;
+        listType = 'ul';
+      }
+      htmlParts.push(`<li>${formatInline(ulMatch[1].trim())}</li>`);
+      continue;
+    }
+
+    // 4. Ordered list: 1. Item
+    const olMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    if (olMatch) {
+      if (!inList || listType !== 'ol') {
+        closeList();
+        htmlParts.push('<ol>');
+        inList = true;
+        listType = 'ol';
+      }
+      htmlParts.push(`<li>${formatInline(olMatch[2].trim())}</li>`);
+      continue;
+    }
+
+    // 5. Blockquote / Callout: > text
+    if (line.startsWith('>')) {
+      closeList();
+      const cleanQuote = line.replace(/^>\s*/, '');
+      htmlParts.push(`<blockquote><p>${formatInline(cleanQuote)}</p></blockquote>`);
+      continue;
+    }
+
+    // Regular paragraph
+    closeList();
+    htmlParts.push(`<p>${formatInline(line)}</p>`);
+  }
+
+  closeList();
+  return htmlParts.join('');
 }
 
 function addMessage(role, text, responseId = '') {
@@ -1930,7 +2029,7 @@ function copyToPrepNotes(text) {
 
   // Clean markdown noise for plain text notes
   const plain = text
-    .replace(/^###+\s*/gm, '')
+    .replace(/^#{1,6}\s*/gm, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .trim();
