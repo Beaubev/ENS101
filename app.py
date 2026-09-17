@@ -90,11 +90,20 @@ try:
         HAVE_PLAYWRIGHT,
         check_admin_session,
         lookup_student_completion,
+        lookup_student_report,
+        launch_interactive_login,
+        clean_stale_profile_locks,
+        configure as _configure_pathwayu,
     )
+    # Use this app's directory for downloaded reports
+    _configure_pathwayu(downloads_dir=ROOT_DIR / "downloads")
 except ImportError:
     HAVE_PLAYWRIGHT = False
     check_admin_session = None
     lookup_student_completion = None
+    lookup_student_report = None
+    launch_interactive_login = None
+    clean_stale_profile_locks = None
 
 try:
     from ensign_connect_client import (
@@ -1416,11 +1425,14 @@ class CoachHandler(SimpleHTTPRequestHandler):
             if PATHWAYU_LOGIN_PROCESS and PATHWAYU_LOGIN_PROCESS.poll() is None:
                 self._json({
                     "status": "login_in_progress",
-                    "message": "The authentication window is already open.",
+                    "in_progress": True,
+                    "message": "The authentication window is already open. Complete SSO in that window.",
                 })
                 return
 
             try:
+                if clean_stale_profile_locks:
+                    clean_stale_profile_locks()
                 creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
                 PATHWAYU_LOGIN_PROCESS = subprocess.Popen(
                     [sys.executable, str(ROOT_DIR / "login_pathwayu_admin.py")],
