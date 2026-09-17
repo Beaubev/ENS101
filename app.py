@@ -1483,14 +1483,80 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 }, HTTPStatus.BAD_REQUEST)
                 return
 
-            if not lookup_student_completion:
+            clean_email_file = re.sub(r"[^a-zA-Z0-9_.-]", "_", email.lower())
+            found_pdf = None
+
+            # 1. Check if a downloaded report PDF already exists on disk
+            potential_dirs = [
+                ROOT_DIR / "downloads",
+                ROOT_DIR.parent / "mentor-career-explorer-coach-ai" / "downloads",
+                ROOT_DIR.parent / "AI AGENTS LOCAL LLM" / "shared" / "downloads",
+            ]
+            for pdir in potential_dirs:
+                if pdir.exists():
+                    matches = list(pdir.glob(f"{clean_email_file}_*.pdf"))
+                    if matches:
+                        matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+                        found_pdf = matches[0]
+                        break
+
+            parsed_data = None
+            if found_pdf and found_pdf.exists():
+                try:
+                    with open(found_pdf, "rb") as f:
+                        pdf_bytes = f.read()
+                    extracted_text = extract_text_from_pdf(pdf_bytes)
+                    parsed_data = parse_pathwayu_text(extracted_text)
+                except Exception as ex:
+                    print(f"[PDF Cached Parse Error] {ex}")
+
+            # If we already have a parsed report with complete status, return immediately
+            if parsed_data and parsed_data.get("completed_count") == 4:
+                result = {
+                    "success": True,
+                    "status": "complete",
+                    "student_email": email,
+                    "completed_count": 4,
+                    "total": 4,
+                    "completed": ["Interests", "Values", "Personality", "Workplace Preferences"],
+                    "missing": [],
+                    "file_path": str(found_pdf),
+                    "filename": found_pdf.name,
+                    "parsed_data": parsed_data,
+                    "message": f"Career Explorer report loaded for {email}."
+                }
+                self._json(result)
+                return
+
+            # 2. If not cached, perform lookup via persistent Playwright admin client
+            if lookup_student_report:
+                result = lookup_student_report(email)
+                if result.get("status") in ("success", "complete") and result.get("file_path"):
+                    pdf_file = Path(result["file_path"])
+                    if pdf_file.exists():
+                        try:
+                            with open(pdf_file, "rb") as f:
+                                pdf_bytes = f.read()
+                            extracted_text = extract_text_from_pdf(pdf_bytes)
+                            parsed_data = parse_pathwayu_text(extracted_text)
+                            result["parsed_data"] = parsed_data
+                            result["status"] = "complete"
+                        except Exception as ex:
+                            print(f"[Downloaded PDF Parse Error] {ex}")
+            elif lookup_student_completion:
+                result = lookup_student_completion(email)
+                if parsed_data:
+                    result["parsed_data"] = parsed_data
+            else:
                 self._json({
                     "status": "unavailable",
                     "message": "Career Explorer lookup is not installed.",
                 }, HTTPStatus.SERVICE_UNAVAILABLE)
                 return
 
-            result = lookup_student_completion(email)
+            if parsed_data and "parsed_data" not in result:
+                result["parsed_data"] = parsed_data
+
             response_status = {
                 "unavailable": HTTPStatus.SERVICE_UNAVAILABLE,
                 "auth_required": HTTPStatus.UNAUTHORIZED,

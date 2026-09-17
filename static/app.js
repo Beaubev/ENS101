@@ -192,7 +192,7 @@ async function loadAppointmentById(appId) {
     return;
   }
   try {
-    const res = await fetch(`/api/appointments/get?id=${encodeURIComponent(appId)}`);
+    const res = await fetch('/api/appointments/get?id=' + encodeURIComponent(appId));
     const data = await res.json();
     if (data.status === 'ok' && data.appointment) {
       const a = data.appointment;
@@ -232,10 +232,14 @@ async function loadAppointmentById(appId) {
         await fetchCareerGuidance();
       }
       showToast(`Loaded record for ${state.student.name || 'student'}`);
+    } else {
+      localStorage.removeItem(ACTIVE_APPT_ID_KEY);
+      resetAppointmentLocal();
     }
   } catch (err) {
     console.error('Failed to load appointment:', err);
-    showToast('Could not load appointment.');
+    localStorage.removeItem(ACTIVE_APPT_ID_KEY);
+    resetAppointmentLocal();
   }
 }
 
@@ -325,12 +329,25 @@ function renderGuidanceDisplay(data) {
 
   const majorsEl = $('#guidance-majors-list');
   if (majorsEl && Array.isArray(data.aligned_majors)) {
-    majorsEl.innerHTML = data.aligned_majors.map(m => `<li><strong>${m}</strong></li>`).join('');
+    majorsEl.innerHTML = data.aligned_majors.map(m => {
+      if (m.includes('Transfer Degree')) {
+        return `<li class="guidance-transfer-item"><span style="display:inline-block;background:#14532d;color:#86efac;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:6px;letter-spacing:0.5px;text-transform:uppercase;">University Transfer</span><strong>${m}</strong></li>`;
+      }
+      if (m.includes('Declared Program') || m.includes('Declared Track')) {
+        return `<li class="guidance-declared-item"><span style="display:inline-block;background:#1e3a8a;color:#93c5fd;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:6px;letter-spacing:0.5px;text-transform:uppercase;">Student Major</span><strong>${m}</strong></li>`;
+      }
+      return `<li><strong>${m}</strong></li>`;
+    }).join('');
   }
 
   const careersEl = $('#guidance-careers-list');
   if (careersEl && Array.isArray(data.aligned_careers)) {
-    careersEl.innerHTML = data.aligned_careers.map(c => `<li>${c}</li>`).join('');
+    careersEl.innerHTML = data.aligned_careers.map(c => {
+      if (c.includes('(Stated Goal)')) {
+        return `<li class="guidance-goal-item"><span style="display:inline-block;background:#312e81;color:#c7d2fe;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;margin-right:6px;letter-spacing:0.5px;text-transform:uppercase;">Stated Goal</span><strong>${c}</strong></li>`;
+      }
+      return `<li>${c}</li>`;
+    }).join('');
   }
 
   const stratEl = $('#guidance-strategy-list');
@@ -626,9 +643,8 @@ function renderPrepareWorkspace() {
   } else if (stepIdx === 1) {
     if (state.guidance) {
       renderGuidanceDisplay(state.guidance);
-    } else {
-      fetchCareerGuidance();
     }
+    fetchCareerGuidance();
   } else if (stepIdx === 2) {
     if ($('#recap-name')) $('#recap-name').textContent = state.student.name || 'Unnamed';
     if ($('#recap-email')) $('#recap-email').textContent = state.student.email || 'No email';
@@ -795,6 +811,9 @@ function bindSessionFields() {
       if (!el) return;
       el.addEventListener('input', () => {
         state.student[key] = el.value;
+        if (key === 'program' || key === 'career') {
+          state.guidance = null;
+        }
         selectors.forEach(otherSel => {
           const otherEl = $(otherSel);
           if (otherEl && otherEl !== el) otherEl.value = el.value;
@@ -1058,13 +1077,20 @@ async function performStudentLookup(email) {
     });
     const data = await response.json();
 
-    if (data.status === 'complete' || data.status === 'incomplete') {
-      state.assessmentData = { ...state.assessmentData, ...data };
-      state.student.roadmap = data.status === 'complete'
+    if (data.status === 'complete' || data.status === 'incomplete' || data.status === 'success') {
+      const parsed = data.parsed_data || {};
+      state.assessmentData = { ...state.assessmentData, ...data, ...parsed };
+      if (parsed.student_name) {
+        state.student.name = parsed.student_name;
+        if ($('#prep-student-name')) $('#prep-student-name').value = parsed.student_name;
+        if ($('#student-name')) $('#student-name').value = parsed.student_name;
+      }
+      state.student.roadmap = (data.status === 'complete' || data.status === 'success')
         ? 'Completed'
         : (Number(data.completed_count) > 0 ? 'In progress' : 'Not started');
       if ($('#roadmap-status')) $('#roadmap-status').value = state.student.roadmap;
       renderAssessmentCards();
+      state.guidance = null;
       await fetchCareerGuidance();
       ceSuccess = true;
       ceMsg = 'Career Explorer updated';
@@ -1778,14 +1804,17 @@ async function init() {
   renderQuickTools();
   renderResources();
 
+  // 1. Render immediately so sidebar and workspace are NEVER blank while network requests load
+  renderStep();
+  renderChat();
+
+  // 2. Fetch saved appointments
   await fetchAppointmentsList();
 
+  // 3. Load active appointment if saved, updating state and re-rendering
   const activeApptId = localStorage.getItem(ACTIVE_APPT_ID_KEY);
   if (activeApptId) {
     await loadAppointmentById(activeApptId);
-  } else {
-    renderStep();
-    renderChat();
   }
 
   loadServiceStatus();
