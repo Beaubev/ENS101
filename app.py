@@ -28,6 +28,16 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlparse
+
+import sys as _sys
+import os as _os
+_sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '..', 'AI AGENTS LOCAL LLM', 'shared'))
+from career_explorer_engine import (
+    parse_career_explorer_pdf, build_briefing, build_career_recommendations,
+    generate_guidance_sections, personality_description,
+    STRENGTHS_FRAMING_PROMPT, VOICE_STUDENT, VOICE_MENTOR,
+    TRAIT_EXPLANATIONS, MAJOR_ALIGNMENTS, CAREER_ALIGNMENTS,
+)
 from urllib.request import Request, urlopen
 
 try:
@@ -616,171 +626,12 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
 
 def parse_pathwayu_text(text: str) -> dict:
     """Extracts student name, Holland code, interests, values, and assessment status."""
-    data = {
-        "student_name": "",
-        "holland_code": "",
-        "primary_interests": [],
-        "supporting_interests": [],
-        "primary_values": [],
-        "primary_workplace_preferences": [],
-        "completed_count": 0,
-        "total": 4,
-        "status": "incomplete",
-        "missing": []
-    }
-    if not text:
-        return data
-
-    name_match = re.search(r'^(?:[A-Z\s]+\n+)?([A-Z][a-z]+ [A-Z][a-z]+)\s*\n+PathwayU', text, re.MULTILINE)
-    if not name_match:
-        name_match = re.search(r'(?:pathway\s*u\s*\n+|ENSIGN COLLEGE\s*\n+)([A-Z][a-z]+ [A-Z][a-z]+)', text)
-    if name_match:
-        data["student_name"] = name_match.group(1).strip()
-
-    pi_m = re.search(r'Your primary Interests are\s+([A-Za-z]+)\s+and\s+([A-Za-z]+)', text, re.IGNORECASE)
-    primary_ints = [pi_m.group(1).capitalize(), pi_m.group(2).capitalize()] if pi_m else []
-    data["primary_interests"] = primary_ints
-
-    si_m = re.search(r'SUPPORTING INTERESTS\s*\n+([A-Za-z]+)', text, re.IGNORECASE)
-    supp_ints = [si_m.group(1).capitalize()] if si_m else []
-    data["supporting_interests"] = supp_ints
-
-    all_ints = primary_ints + supp_ints
-    if all_ints:
-        code_letters = "".join([i[0] for i in all_ints])
-        data["holland_code"] = f"{'-'.join(all_ints)} ({code_letters})"
-    else:
-        letters_match = re.search(r'\b([R|I|A|S|E|C]{2,3})\b', text)
-        data["holland_code"] = letters_match.group(1) if letters_match else "Not detected"
-
-    pv_m = re.search(r'Your primary Values are\s+([A-Za-z]+)\s+and\s+([A-Za-z]+)', text, re.IGNORECASE)
-    if pv_m:
-        data["primary_values"] = [pv_m.group(1).capitalize(), pv_m.group(2).capitalize()]
-
-    wp_m = re.search(r'Your primary Workplace Preferences are\s+([A-Za-z\s]+?)\s+and\s+([A-Za-z\s]+?)\.', text, re.IGNORECASE)
-    if wp_m:
-        data["primary_workplace_preferences"] = [wp_m.group(1).strip().capitalize(), wp_m.group(2).strip().capitalize()]
-
-    # Check for assessment presence in report text
-    completed = []
-    missing = []
-    for section in ["Interests", "Values", "Personality", "Workplace Preferences"]:
-        if section.lower() in text.lower():
-            completed.append(section)
-        else:
-            missing.append(section)
-    data["completed_count"] = len(completed)
-    data["missing"] = missing
-    data["status"] = "complete" if len(completed) == 4 else "incomplete"
-    return data
+    return parse_career_explorer_pdf(text, track_completion=True)
 
 
 def generate_career_guidance(student_name: str, program: str, career: str, assessment_data: dict | None = None) -> dict:
     """Generates tailored guidance from Career Explorer assessment results and student context."""
-    assessment_data = assessment_data or {}
-    holland_code = assessment_data.get("holland_code", "")
-    completed_count = assessment_data.get("completed_count", 0)
-    missing = assessment_data.get("missing", [])
-
-    name_str = f" for {student_name}" if student_name else ""
-    code_letters = re.findall(r'[RIASCE]', holland_code.upper())
-
-    trait_explanations = {
-        "S": "Social (helpers, communicators, teachers, mentors)",
-        "E": "Enterprising (persuaders, leaders, entrepreneurs, project drivers)",
-        "C": "Conventional (organizers, detail-oriented planners, data/systems analysts)",
-        "I": "Investigative (thinkers, researchers, problem solvers, engineers)",
-        "A": "Artistic (creators, visual/UI designers, expressive innovators)",
-        "R": "Realistic (builders, hands-on technologists, practical problem-solvers)",
-    }
-
-    major_alignments = {
-        "S": ["Medical Assisting", "Communication", "Integrated Studies (Healthcare/Education)"],
-        "E": ["Business Management", "Digital Marketing", "Entrepreneurship", "Professional Sales"],
-        "C": ["Accounting", "Project Management", "Administrative Support", "Finance"],
-        "I": ["Information Technology", "Cybersecurity", "Software Engineering", "Data Analytics"],
-        "A": ["Graphic Design", "Interior Design", "Digital Media", "Content Creation"],
-        "R": ["Network Engineering", "Computer Support Specialist", "Applied Technology"],
-    }
-
-    career_alignments = {
-        "S": ["Student Advisor", "Healthcare Coordinator", "Human Resources Specialist", "Community Outreach Manager"],
-        "E": ["Marketing Coordinator", "Operations Supervisor", "Account Executive", "Business Development Representative"],
-        "C": ["Financial Analyst", "Compliance Specialist", "Logistics Coordinator", "Database Administrator"],
-        "I": ["Systems Analyst", "Information Security Analyst", "Full Stack Web Developer", "Quality Assurance Analyst"],
-        "A": ["UI/UX Designer", "Brand Content Strategist", "Multimedia Artist", "Creative Director"],
-        "R": ["Cloud Support Associate", "Field Systems Technician", "Network Administrator", "Hardware Specialist"],
-    }
-
-    aligned_majors = []
-    aligned_careers = []
-    traits_described = []
-
-    for letter in (code_letters if code_letters else ["S", "E", "C"]):
-        if letter in trait_explanations:
-            traits_described.append(trait_explanations[letter])
-        if letter in major_alignments:
-            aligned_majors.extend(major_alignments[letter])
-        if letter in career_alignments:
-            aligned_careers.extend(career_alignments[letter])
-
-    aligned_majors = list(dict.fromkeys(aligned_majors))[:4]
-    aligned_careers = list(dict.fromkeys(aligned_careers))[:4]
-
-    guidance_sections = []
-
-    if completed_count == 4 or assessment_data.get("status") == "complete":
-        status_summary = "All four Career Explorer assessments (Interests, Values, Personality, Workplace Preferences) are complete."
-    elif completed_count > 0:
-        missing_str = ", ".join(missing) if missing else "remaining sections"
-        status_summary = f"{completed_count} of 4 assessments complete. Still needed: {missing_str}."
-    else:
-        status_summary = "Career Explorer assessments have not yet been completed. Encourage the student to complete all four sections before or during this session."
-
-    guidance_sections.append({
-        "title": "Assessment Completion Status",
-        "content": status_summary
-    })
-
-    if traits_described:
-        guidance_sections.append({
-            "title": f"Holland Code Profile: {holland_code or 'Social-Enterprising-Conventional (SEC)'}",
-            "content": "• " + "\n• ".join(traits_described)
-        })
-
-    if aligned_majors:
-        guidance_sections.append({
-            "title": "Aligned Ensign College Majors",
-            "content": "• " + "\n• ".join(aligned_majors)
-        })
-
-    if aligned_careers:
-        guidance_sections.append({
-            "title": "Possible Career Pathways",
-            "content": "• " + "\n• ".join(aligned_careers)
-        })
-
-    discussion_points = [
-        "Ask how their top interests connect to what they enjoy doing when solving problems or working with others.",
-        "Compare their stated career direction with their assessment results to identify natural strengths and confidence gaps.",
-        "Highlight how certificate courses in their major can lead to an internship and early professional momentum."
-    ]
-    if program:
-        discussion_points.append(f"Explore how their interest in {program} connects to specific industry projects and CAR 398/399/499 internships.")
-
-    guidance_sections.append({
-        "title": "Recommended Appointment Discussion Strategy",
-        "content": "• " + "\n• ".join(discussion_points)
-    })
-
-    return {
-        "status": "ok",
-        "summary": f"Personalized Career Explorer Guidance{name_str}",
-        "sections": guidance_sections,
-        "holland_code": holland_code or "SEC",
-        "aligned_majors": aligned_majors,
-        "aligned_careers": aligned_careers
-    }
+    return generate_guidance_sections(student_name, program, career, assessment_data, voice=VOICE_MENTOR)
 
 
 # ==============================================================================
@@ -1033,79 +884,10 @@ Guided by the mission of Ensign College, we help mentors develop students into c
 {FOOTER_TEXT}"""
 
     if mode in ("step2", "prep-guidance"):
-        student_label = f"Student: {parsed_data['student_name']}" if (parsed_data and parsed_data.get("student_name")) else "Student Assessment"
-
-        h_code = "Social-Enterprising-Investigative (SEI)"
-        if parsed_data and parsed_data.get("holland_code") and parsed_data["holland_code"] != "Not detected":
-            h_code = parsed_data["holland_code"]
-
-        values_list = ["Independence", "Relationships", "Achievement"]
-        if parsed_data and parsed_data.get("primary_values") and len(parsed_data["primary_values"]) >= 2:
-            values_list[0] = parsed_data["primary_values"][0]
-            values_list[1] = parsed_data["primary_values"][1]
-
-        prefs_text = "Collaboration and Guiding Principles"
-        if parsed_data and parsed_data.get("primary_workplace_preferences") and len(parsed_data["primary_workplace_preferences"]) >= 2:
-            prefs_text = f"{parsed_data['primary_workplace_preferences'][0]} and {parsed_data['primary_workplace_preferences'][1]}"
-
-        p_scores = parsed_data.get("personality", {}) if parsed_data else {}
-        es_score = p_scores.get("Emotional Stability", "moderate-to-high")
-        op_score = p_scores.get("Openness to Experience", "moderate-to-high")
-        ex_score = p_scores.get("Extraversion", "moderate-to-high")
-
-        return f"""### Executive Assessment Briefing for Career Mentors
-**{student_label}**
-
-#### 1. Personality Profile (HEXACO)
-- **Openness to Experience ({op_score}):** {"Reflects strong creative curiosity and intellectual versatility — the student genuinely enjoys exploring novel ideas, adapting to new environments, and seeing problems from fresh angles." if "high" in str(op_score).lower() else "Reflects a grounded, practical orientation — the student tends to build deep expertise in focused areas rather than spreading attention widely. This reliability and consistency is a valued asset in many professional roles." if "low" in str(op_score).lower() else "Reflects a balanced blend of creative curiosity and practical focus, allowing the student to explore new ideas while staying grounded in real-world application."}
-- **Extraversion ({ex_score}):** {"Demonstrates strong interpersonal energy — collaborative team environments, client interaction, and people-facing roles feel energizing rather than draining." if "high" in str(ex_score).lower() else "Reflects a thoughtful, independent work style — the student excels in roles requiring focused concentration, careful listening, and deliberate communication. Many high-performing technical and analytical professionals share this profile." if "low" in str(ex_score).lower() else "Reflects a versatile social style — the student can engage effectively in both collaborative team settings and independent, focused work."}
-- **Emotional Stability ({es_score}):** {"Shows calm resilience under pressure, allowing the student to maintain perspective during demanding projects or career transitions." if "high" in str(es_score).lower() else "Reflects a heightened empathy and responsiveness to others — the student is deeply attuned to feedback and relationships. When channeled through healthy boundaries and self-care routines, this sensitivity becomes a powerful asset in healthcare, counseling, education, and service roles." if "low" in str(es_score).lower() else "Shows solid emotional balance — able to respond thoughtfully to challenges while remaining connected to the needs and experiences of others."}
-
-#### 2. Workplace Preferences
-The student's primary preferences are **{prefs_text}**. In your mentoring session, help them evaluate potential employers based on whether the organizational culture provides supportive teamwork, ethical leadership, and transparent communication.
-
-#### 3. Core Values (Top 3)
-1. **{values_list[0]}:** Desires autonomy, creative discretion, and personal responsibility in their daily tasks.
-2. **{values_list[1]}:** Motivated by positive workplace relationships, mutual respect, and serving others.
-3. **{values_list[2]}:** Driven by tangible accomplishments and seeing the measurable impact of their labor.
-
-#### 4. Interests & Holland Code
-- **Holland Code:** **{h_code}**
-- **Aligned Environments:** Thrives in roles combining interpersonal support (Social), initiative/leadership (Enterprising), and analytical problem-solving (Investigative).
-- **Aligned O*NET Occupations:** Human Resources Coordinator, Project Coordinator, Public Relations Specialist, Training & Development Specialist.
-
-#### 5. Probing Questions for Your Mentoring Session
-1. *"When you look at your top values ({values_list[0]} and {values_list[1]}), which one has felt most important to you in past jobs, callings, or team projects?"*
-2. *"How does the idea of leading or coordinating projects (Enterprising/Social) align with what you feel inspired to do for your first career?"*
-3. *"How might developing strong professional capabilities in this field expand your ability to serve your family and community in the coming years?"*
-
-Explore additional aligned careers at [Career Explorer Assessment]({PATHWAYU_URL}).
-
-{FOOTER_TEXT}"""
+        return build_briefing(parsed_data, voice=VOICE_MENTOR, pathwayu_url=PATHWAYU_URL, footer_text=FOOTER_TEXT)
 
     if mode in ("step3", "prep-notes"):
-        return f"""### Career & Major Alignment Recommendations for Mentors
-
-Here are 3 recommended career pathways and aligned Ensign College programs based on the student's profile to explore during your coaching session:
-
-#### 1. Human Resources Coordinator
-- **Aligned Ensign Program:** Communication BAS or Business Management BAS (*Direct Preparation*)
-- **Assessment Rationale:** Directly engages Social and Enterprising interests by helping individuals develop, resolving organizational challenges, and building collaborative team cultures.
-- **Action Step to Suggest to the Student:** Have the student review the Communication BAS and Business Management BAS degree planning sheets on Ensign's website this week to compare curriculum tracks.
-
-#### 2. Project Coordinator
-- **Aligned Ensign Program:** Project Management Certificate or AAS (*Direct Preparation*), stackable into Business Management BAS
-- **Assessment Rationale:** Leverages Enterprising leadership initiative and high collaborative workplace preferences to guide multidisciplinary teams toward structured goals.
-- **Action Step to Suggest to the Student:** Encourage the student to find an Ensign College alumnus working in project management on Ensign Connect and conduct a 15-minute informational interview.
-
-#### 3. Public Relations Specialist
-- **Aligned Ensign Program:** Communication AAS or BAS (*Direct Preparation*)
-- **Assessment Rationale:** Aligns with Social communication strengths and an appetite for creative storytelling within values-driven organizations.
-- **Action Step to Suggest to the Student:** Guide the student to explore the O*NET profile for Public Relations Specialists to review daily tasks, technical tools, and wage outlooks.
-
-**Coaching Tip for Mentors:** Remind the student how certificate stacking works at Ensign College—earning a certificate provides immediate marketable skills while progressing toward an associate and bachelor's degree.
-
-{FOOTER_TEXT}"""
+        return build_career_recommendations(voice=VOICE_MENTOR, footer_text=FOOTER_TEXT)
 
     if mode in ("step4",):
         return f"""### Life Design & Calling: Mentoring Guide for Career Mentors
