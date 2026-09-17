@@ -467,6 +467,46 @@ input.required-incomplete {
   border-color: var(--navy-800);
   transform: translateY(-1px);
 }
+
+.message.assistant a.video-action-btn,
+.prep-chat-msg a.video-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  color: #991b1b !important;
+  border: 1.2px solid #fca5a5;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  margin: 4px 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(220, 38, 38, 0.08);
+}
+
+.message.assistant a.video-action-btn:hover,
+.prep-chat-msg a.video-action-btn:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #7f1d1d !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.18);
+}
+
+.video-action-btn .video-play-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.video-action-btn .video-ext-icon {
+  font-size: 0.85em;
+  opacity: 0.8;
+  margin-left: 2px;
+}
 .message.user { align-self: flex-end; border-top-right-radius: 3px; color: #fff; background: var(--navy-800); }
 .message.user small { color: #cad7df; }
 .copilot-suggestions { display: flex; gap: 7px; overflow-x: auto; padding: 10px 14px; border-top: 1px solid var(--line); background: #fff; }

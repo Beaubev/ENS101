@@ -835,6 +835,7 @@ ROADMAP_URL = "https://connect.byu.edu/hub/ces/pathways/module-1-know-your-caree
 PATHWAYU_URL = "https://ensign.pathwayu.com"
 DOWNLOAD_EXAMPLE_URL = "https://lds-business-college.brightspotcdn.com/f9/b3/4318ea354586a9a04ba3b8cff319/career-explorer-results.pdf"
 MARIA_VIDEO_URL = "https://www.youtube.com/watch?v=WzWFwJpoLUE"
+MCMULLIN_VIDEO_URL = "https://www.youtube.com/watch?v=Rwdv2V0lOIM"
 
 FOOTER_TEXT = f"""Ensign College Career Services • 10th Floor
 [Career Services Help]({CAREER_SERVICES_URL}) • [Career & Major Exploration Roadmap]({ROADMAP_URL})"""
@@ -886,6 +887,7 @@ NEVER output bare raw URLs in prose. ALWAYS format links as descriptive words th
 - [Career & Major Exploration Roadmap]({ROADMAP_URL})
 - [Download Example PDF]({DOWNLOAD_EXAMPLE_URL})
 - [Maria Chooses a Career and Major]({MARIA_VIDEO_URL})
+- [Keith B. McMullin: Career as Calling Address]({MCMULLIN_VIDEO_URL})
 Do NOT output links telling the mentor to book an appointment with a mentor. Do NOT invent or output links for "How to Download Career Explorer Results". Give the exact UI steps in plain text instead.
 
 Language: Respond in English only.
@@ -967,6 +969,7 @@ Goal: Assist the Career Mentor in guiding the student through Design Thinking an
    - Anchor in developing capable and trusted disciples of Jesus Christ who lead in their homes, the Church, and their communities.
    - Teach mentors to help students see professional capabilities and financial success as consecrated enabling factors.
    - Suggest the mentor encourage the student to review their patriarchal blessing for references to talents, education, and service.
+   - Provide the direct video link for Keith B. McMullin's keynote address: [▶ Watch Keith B. McMullin: Career as Calling Address (Video)]({MCMULLIN_VIDEO_URL}).
 3. Action Milestones: Give the mentor 2-3 concrete milestones to establish with the student for their next check-in."""
 }
 
@@ -1045,6 +1048,7 @@ Guide your student through answering: *"What do I want to do for my first career
 #### 2. Gospel Principles & The Ensign College Mission (Keith B. McMullin)
 - **Anchor in Mission:** Ensign College exists to develop capable and trusted disciples of Jesus Christ who are leaders in their homes, the Church, and their communities.
 - **Career as Calling:** Share Elder Keith B. McMullin's teaching: *"Decide that your career is your mission, not your job. Your mission comes first. Your job comes along and everything works out all right."*
+- **Keynote Address Video:** [▶ Watch Keith B. McMullin: Career as Calling Address (Video)]({MCMULLIN_VIDEO_URL})
 - **Capabilities and Financial Success as Enabling Factors:** Help the student understand that professional capabilities and financial success are not worldly ends, but consecrated enabling factors that expand the resources, stability, and freedom they have to serve others, provide for their families, and build the Kingdom.
 - **Patriarchal Blessing:** Suggest the student prayerfully review their patriarchal blessing for references to talents, gifts, education, or avenues of service.
 

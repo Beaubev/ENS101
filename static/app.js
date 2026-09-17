@@ -90,7 +90,9 @@ const RESOURCES = [
   { id: 'office', name: 'Career Explorer AI', initials: 'AI', category: 'Career Planning', url: 'https://portal.office.com/', description: 'Open Microsoft 365 to access the Career Explorer AI assistant.' },
   { id: 'canvas', name: 'Canvas', initials: 'C', category: 'Academic', url: 'https://ensign.instructure.com/', description: 'ENS 101 course materials, assignments, announcements, and grades.' },
   { id: 'handshake', name: 'Handshake', initials: 'H', category: 'Career Planning', url: 'https://app.joinhandshake.com/edu', description: 'Primary student job board, on-campus interviews, and employer connections.' },
-  { id: 'career', name: 'Career & Internship Services', initials: 'CS', category: 'Career Planning', url: 'https://www.ensign.edu/CIS', description: 'Career preparation, internships, résumés, interviews, and networking.' }
+  { id: 'career', name: 'Career & Internship Services', initials: 'CS', category: 'Career Planning', url: 'https://www.ensign.edu/CIS', description: 'Career preparation, internships, résumés, interviews, and networking.' },
+  { id: 'mcmullin-video', name: 'Elder McMullin: Career as Calling', initials: 'KM', category: 'Career Planning', url: 'https://www.youtube.com/watch?v=Rwdv2V0lOIM', description: 'Ensign College Career Week Keynote Address by Keith B. McMullin on career as mission.' },
+  { id: 'maria-video', name: "Maria's Major Choice Video", initials: 'MV', category: 'Career Planning', url: 'https://www.youtube.com/watch?v=WzWFwJpoLUE', description: 'Ensign College student video case study on choosing a major and career path.' }
 ];
 
 const defaultState = () => ({
@@ -1452,13 +1454,29 @@ function formatAssistantMessage(text) {
     // Markdown links: [label](url)
     s = s.replace(
       /\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s\)"']+)\)/g,
-      (_match, label, rawUrl) => `<a href="${resolveSuiteUrl(rawUrl)}" target="_blank" rel="noopener noreferrer" class="chat-link">${label} &#8599;</a>`
+      (_match, label, rawUrl) => {
+        let isMcMullin = /Rwdv2V0lOIM/i.test(rawUrl);
+        let isMaria = /WzWFwJpoLUE/i.test(rawUrl);
+        if (isMcMullin || isMaria) {
+          let cleanLabel = label.replace(/▶\s*/g, '').trim();
+          return `<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="video-action-btn" title="Watch video"><svg class="video-play-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>${cleanLabel}</span><span class="video-ext-icon">↗</span></a>`;
+        }
+        return `<a href="${resolveSuiteUrl(rawUrl)}" target="_blank" rel="noopener noreferrer" class="chat-link">${label} &#8599;</a>`;
+      }
     );
 
     // Bare URLs
     s = s.replace(
       /(^|[\s(])(https?:\/\/[^\s\)"']+)/g,
-      (_match, prefix, rawUrl) => `${prefix}<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="chat-link">${rawUrl} &#8599;</a>`
+      (_match, prefix, rawUrl) => {
+        let isMcMullin = /Rwdv2V0lOIM/i.test(rawUrl);
+        let isMaria = /WzWFwJpoLUE/i.test(rawUrl);
+        if (isMcMullin || isMaria) {
+          let title = isMcMullin ? 'Watch Keith B. McMullin: Career as Calling Address (Video)' : 'Watch Maria Chooses a Career and Major (Video)';
+          return `${prefix}<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="video-action-btn" title="Watch video"><svg class="video-play-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg><span>${title}</span><span class="video-ext-icon">↗</span></a>`;
+        }
+        return `${prefix}<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="chat-link">${rawUrl} &#8599;</a>`;
+      }
     );
 
     // Bold: **text** (supports single asterisks inside words like O*NET)
