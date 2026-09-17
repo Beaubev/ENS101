@@ -1401,6 +1401,88 @@ class CoachHandler(SimpleHTTPRequestHandler):
             self._json({"status": "ok", "appointment": appointment})
             return
 
+        # Direct download endpoint for student assessment full reports (.PDF)
+        if clean_path == "/api/career-explorer/download-report":
+            query = parse_qs(urlparse(self.path).query)
+            target_filename = query.get("file", [""])[0].strip()
+            student_email = query.get("email", [""])[0].strip()
+            requested_name = query.get("name", [""])[0].strip()
+
+            search_dirs = [
+                ROOT_DIR / "downloads",
+                ROOT_DIR.parent / "mentor-career-explorer-coach-ai" / "downloads",
+                ROOT_DIR.parent / "AI AGENTS LOCAL LLM" / "shared" / "downloads",
+            ]
+
+            target_file = None
+            if target_filename:
+                safe_name = os.path.basename(target_filename)
+                for sdir in search_dirs:
+                    if not sdir.exists():
+                        continue
+                    candidate = (sdir / safe_name).resolve()
+                    if candidate.is_file() and candidate.name.lower().endswith(".pdf"):
+                        target_file = candidate
+                        break
+                    for f in sdir.glob("*.pdf"):
+                        if f.is_file() and f.name.lower() == safe_name.lower():
+                            target_file = f
+                            break
+                    if target_file:
+                        break
+
+            if target_file is None and student_email:
+                clean_email = re.sub(r"[^a-zA-Z0-9_.-]", "_", student_email.lower())
+                for sdir in search_dirs:
+                    if not sdir.exists():
+                        continue
+                    matching = sorted(
+                        [f for f in sdir.glob(f"{clean_email}*.pdf") if f.is_file()],
+                        key=lambda f: f.stat().st_mtime,
+                        reverse=True
+                    )
+                    if matching:
+                        target_file = matching[0]
+                        break
+
+            if target_file is None:
+                candidates = []
+                for sdir in search_dirs:
+                    if sdir.exists():
+                        candidates.extend([f for f in sdir.glob("*.pdf") if f.is_file() and f.stat().st_size > 1000])
+                if candidates:
+                    candidates.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+                    target_file = candidates[0]
+
+            if target_file is None or not target_file.exists():
+                self._json({"error": "Student report PDF not found."}, HTTPStatus.NOT_FOUND)
+                return
+
+            try:
+                with open(target_file, "rb") as f:
+                    pdf_bytes = f.read()
+
+                if len(pdf_bytes) < 500 or not pdf_bytes.startswith(b"%PDF-"):
+                    self._json({"error": "File on disk is not a valid PDF document."}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                    return
+
+                safe_dl_name = re.sub(r"[^\w\-. ]", "_", requested_name) if requested_name else target_file.name
+                if not safe_dl_name.lower().endswith(".pdf"):
+                    safe_dl_name += ".pdf"
+
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Disposition", f'attachment; filename="{safe_dl_name}"')
+                self.send_header("Content-Length", str(len(pdf_bytes)))
+                self.send_header("Cache-Control", "private, no-cache, no-store, must-revalidate")
+                self.send_header("Accept-Ranges", "bytes")
+                self.end_headers()
+                self.wfile.write(pdf_bytes)
+                return
+            except Exception as exc:
+                self._json({"error": f"Failed to download report PDF: {exc}"}, HTTPStatus.INTERNAL_SERVER_ERROR)
+                return
+
         super().do_GET()
 
     def do_POST(self):
@@ -1522,6 +1604,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
                     "missing": [],
                     "file_path": str(found_pdf),
                     "filename": found_pdf.name,
+                    "download_url": f"/api/career-explorer/download-report?file={found_pdf.name}&name=Career_Explorer_Report_{clean_email_file}.pdf",
                     "parsed_data": parsed_data,
                     "message": f"Career Explorer report loaded for {email}."
                 }
@@ -1541,6 +1624,8 @@ class CoachHandler(SimpleHTTPRequestHandler):
                             parsed_data = parse_pathwayu_text(extracted_text)
                             result["parsed_data"] = parsed_data
                             result["status"] = "complete"
+                            result["filename"] = pdf_file.name
+                            result["download_url"] = f"/api/career-explorer/download-report?file={pdf_file.name}&name=Career_Explorer_Report_{clean_email_file}.pdf"
                         except Exception as ex:
                             print(f"[Downloaded PDF Parse Error] {ex}")
             elif lookup_student_completion:

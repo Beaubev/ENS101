@@ -484,6 +484,16 @@ function renderStatusBadges() {
       ceBadge.className = 'status-pill gray';
       ceBadge.textContent = 'Not checked';
     }
+
+    const dlBtn = $('#btn-download-student-report');
+    if (dlBtn) {
+      dlBtn.hidden = !isComplete;
+      if (isComplete) {
+        const studentName = state.student?.name ? state.student.name.split(' ')[0] : 'Student';
+        const label = $('#label-download-student-report');
+        if (label) label.textContent = `Download ${studentName}'s Report (.PDF)`;
+      }
+    }
   }
 
   if (ecBadge) {
@@ -1660,6 +1670,54 @@ function bindEvents() {
     renderStep();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  async function downloadStudentReport() {
+    const email = state.student?.email || '';
+    const name = state.student?.name || (email ? email.split('@')[0] : 'Student');
+    let url = state.assessmentData?.download_url || '';
+    if (!url && email) {
+      url = `/api/career-explorer/download-report?email=${encodeURIComponent(email)}`;
+    } else if (!url) {
+      url = '/api/career-explorer/download-report';
+    }
+
+    showToast(`⏳ Fetching full report for ${name}...`);
+    try {
+      const resp = await fetch(url);
+      const contentType = resp.headers.get('content-type') || '';
+      if (!resp.ok || !contentType.includes('application/pdf')) {
+        let msg = `Server returned ${resp.status}`;
+        try {
+          const d = await resp.json();
+          msg = d.message || d.error || msg;
+        } catch (_) {}
+        showToast(`❌ Download failed: ${msg}`);
+        return;
+      }
+      const blob = await resp.blob();
+      if (blob.size < 1000) {
+        throw new Error(`Report file is unexpectedly small (${blob.size} bytes).`);
+      }
+      const filename = state.assessmentData?.filename || `Career_Explorer_Report_${name.replace(/\s+/g, '_')}.pdf`;
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(objectUrl);
+        if (document.body.contains(a)) document.body.removeChild(a);
+      }, 3000);
+      showToast(`✅ Saved ${filename} (${Math.round(blob.size / 1024)} KB)`);
+    } catch (err) {
+      console.error('Download report error:', err);
+      showToast(`❌ Download error: ${err.message}`);
+    }
+  }
+
+  $('#btn-download-student-report')?.addEventListener('click', downloadStudentReport);
 
   $('#btn-copy-guidance-notes')?.addEventListener('click', () => {
     if (!state.guidance) return;

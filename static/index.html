@@ -229,10 +229,16 @@
                       <p class="eyebrow">Personalized Insights</p>
                       <h2>Step 2: Read Generated Career Explorer Guidance</h2>
                     </div>
-                    <button id="btn-copy-guidance-notes" class="button secondary small" type="button">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-                      <span>Copy Guidance to Prep Notes</span>
-                    </button>
+                    <div class="step-header-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                      <button id="btn-download-student-report" class="button secondary small has-report-btn" type="button" hidden title="Download official full Career Explorer report (.PDF)">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span id="label-download-student-report">Download Full Report (.PDF)</span>
+                      </button>
+                      <button id="btn-copy-guidance-notes" class="button secondary small" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                        <span>Copy Guidance to Prep Notes</span>
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Holland Code Profile Banner -->
