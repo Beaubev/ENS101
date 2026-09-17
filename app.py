@@ -131,6 +131,14 @@ READINESS_DATA_DIR = Path.home() / "Library" / "Application Support" / "Ensign S
 READINESS_TOKEN_PATH = READINESS_DATA_DIR / "consumer-token"
 READINESS_KEY_PATH = READINESS_DATA_DIR / "fingerprint-key"
 SHARED_ONEDRIVE_SNAPSHOT = Path(
+    os.environ.get(
+        "READINESS_HUB_SNAPSHOT_PATH",
+        "/Users/robbagley/Library/CloudStorage/OneDrive-EnsignCollege"
+        "/2 - Areas ODrive/CIS - General/3 - Resources/DATA/STUDENT/ENSIGN_CONNECT_PEOPLEGROVE"
+        "/readiness_snapshot_v1.json",
+    )
+)
+LEGACY_ONEDRIVE_SNAPSHOT = Path(
     "/Users/robbagley/Library/CloudStorage/OneDrive-EnsignCollege"
     "/2 - Areas ODrive/CIS - General/3 - Resources/Alumni/Ensign_Connect_DATA"
     "/readiness_snapshot_v1.json"
@@ -197,11 +205,12 @@ def lookup_readiness_hub(email: str) -> dict | None:
 
     # 2. Fallback: Read shared atomic OneDrive snapshot
     try:
-        if SHARED_ONEDRIVE_SNAPSHOT.exists():
+        snap_path = SHARED_ONEDRIVE_SNAPSHOT if SHARED_ONEDRIVE_SNAPSHOT.exists() else LEGACY_ONEDRIVE_SNAPSHOT
+        if snap_path.exists():
             key = _get_readiness_fingerprint_key()
             if key:
                 fp = _email_fingerprint(norm_email, key)
-                with open(SHARED_ONEDRIVE_SNAPSHOT, "r", encoding="utf-8") as f:
+                with open(snap_path, "r", encoding="utf-8") as f:
                     snapshot = json.load(f)
                 accounts = set(snapshot.get("accounts", []))
                 is_ready = fp in accounts
