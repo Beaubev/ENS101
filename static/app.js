@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'ens101-mentor-desk-appointment-1a-v3';
+const STORAGE_KEY = 'ens101-mentor-desk-appointment-1a-v4';
 const ACTIVE_APPT_ID_KEY = 'ens101_active_appt_id';
 
 const PREPARE_STEPS = [
@@ -200,7 +200,10 @@ async function loadAppointmentById(appId) {
         ...defaultState(),
         appointmentId: a.id,
         currentTask: a.current_task || 'prepare',
-        currentStep: typeof a.current_step === 'number' ? a.current_step : 0,
+        currentStep: Math.min(
+          typeof a.current_step === 'number' ? a.current_step : 0,
+          ((a.current_task || 'prepare') === 'prepare' ? PREPARE_STEPS.length : WORKFLOW.length) - 1
+        ),
         student: {
           name: a.student_name || '',
           email: a.student_email || '',
