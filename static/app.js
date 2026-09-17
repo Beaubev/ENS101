@@ -921,7 +921,7 @@ async function checkCareerExplorerSession() {
     const response = await fetch('/api/career-explorer/session', { cache: 'no-store' });
     const data = await response.json();
     statusEls.forEach(status => {
-      if (!data.available) {
+      if (data.available === false) {
         status.textContent = 'Optional setup needed';
         status.className = 'career-session-status warning';
       } else if (data.authenticated) {
@@ -933,7 +933,7 @@ async function checkCareerExplorerSession() {
       }
     });
     authBtns.forEach(btn => {
-      btn.hidden = data.authenticated || !data.available;
+      btn.hidden = Boolean(data.authenticated || data.available === false);
       if (!btn.hidden) {
         btn.textContent = data.in_progress ? 'Check access' : 'Authenticate Career Explorer';
       }
