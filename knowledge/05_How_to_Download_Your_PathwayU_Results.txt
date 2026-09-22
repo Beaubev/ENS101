@@ -1,0 +1,72 @@
+DOCUMENT TITLE: How to Download Your PathwayU Results
+AUDIENCE: Students (delivered via AI agent)
+PURPOSE: Step-by-step instructions for downloading the PathwayU Career Explorer PDF. Use when a student says they cannot find the download button, does not know where their results are, or needs help accessing their report.
+TAGS: pathwayu, assessment-download, career-explorer-results, student-help, how-to
+
+---
+
+WHAT IS THE PATHWAYU CAREER EXPLORER REPORT?
+
+PathwayU is an online career assessment platform used by Ensign College to help students discover career paths that align with their interests, values, work preferences, and personality.
+
+After completing the assessments, PathwayU generates a Career Explorer Report - a personalized PDF that summarizes your results and suggests potential career matches. This report is the starting point for career coaching conversations at Ensign College.
+
+---
+
+HOW TO ACCESS AND DOWNLOAD YOUR CAREER EXPLORER RESULTS
+
+Step 1: Log in to Career Explorer
+- Go to ensign.pathwayu.com
+- Sign in using your Ensign College student credentials
+
+Step 2: Go to the Assessments page
+- Navigate to the Assessments page (ensign.pathwayu.com/results)
+- Confirm your four assessments (Interests, Values, Personality, Workplace Preferences) show completed checkmarks
+
+Step 3: Locate the DOWNLOAD button
+- At the top of the Assessments page, right next to the "PRINT" icon, click the "DOWNLOAD" button (with the download arrow icon: ⬇ DOWNLOAD)
+- This downloads your official Career Explorer assessment results PDF to your computer or mobile device
+- You can also click the black "EXPLORE CAREER MATCHES" button on the top right to see careers aligned with your profile
+
+Step 4: Upload your PDF to this AI Coach
+- Return to this coach and upload your downloaded PDF in Step 2 (or paste your results)
+- NOTE: There is no separate "How to Download" link. Explain these steps directly to students in plain text!
+
+---
+
+SHARING YOUR RESULTS WITH THE AGENT OR A CAREER MENTOR
+
+Once you have downloaded your report:
+- You can share the PDF with this agent by uploading it to the conversation
+- You can also bring the PDF to a Career Mentor appointment at Ensign College Career Services
+
+The agent will be able to read your top career matches and begin connecting them to Ensign College programs and your CliftonStrengths themes (if available).
+
+---
+
+TROUBLESHOOTING
+
+I cannot log in to PathwayU.
+Contact Ensign College Career Services. They can resend your access invitation or help you reset your login.
+
+My assessments show as complete but I cannot find the download button.
+Try refreshing the page or logging out and back in. If the button still does not appear, contact Career Services for assistance.
+
+I completed the assessments but my results look incomplete.
+Make sure all four assessment sections are fully submitted, not just started. PathwayU requires all four sections to generate a complete Career Explorer Report.
+
+I lost or deleted my PDF.
+You can log back in to PathwayU and download it again at any time. Your results are saved to your account.
+
+I can't access the Career & Major Exploration Roadmap / Ensign Connect.
+Send an email to careerservices@ensign.edu or call 801-524-1925.
+
+I do not have a PathwayU account yet.
+PathwayU access is provided through Ensign College. Contact Career Services to receive your invitation link.
+
+---
+
+NEED HELP?
+
+Ensign College Career Services can assist with PathwayU access, technical issues, and questions about your results.
+Contact Career Services through the Ensign College student portal or ask your advisor how to reach them.

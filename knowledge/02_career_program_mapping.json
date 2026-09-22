@@ -1,0 +1,130 @@
+{
+  "source": "Doc 2: Career -> Ensign Program Mapping Guide",
+  "clusters": {
+    "ACCOUNTING AND FINANCE": {
+      "careers": [
+        "Accountant",
+        "Accounting Clerk",
+        "Financial Analyst (entry-level)",
+        "Bookkeeper"
+      ],
+      "programs": [
+        {
+          "program": "Accounting Certificate",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Accounting AAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Accounting BAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Finance BAS",
+          "type": "Direct Preparation"
+        }
+      ]
+    },
+    "BUSINESS AND MANAGEMENT": {
+      "careers": [
+        "Operations Manager",
+        "Project Coordinator",
+        "Business Analyst (entry-level)",
+        "Sales Manager"
+      ],
+      "programs": [
+        {
+          "program": "Business Management BAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Project Management Certificate",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Project Management AAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Professional Sales Certificate",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Supply Chain Management Certificate",
+          "type": "Direct Preparation"
+        }
+      ]
+    },
+    "MARKETING, COMMUNICATION, AND MEDIA": {
+      "careers": [
+        "Marketing Specialist",
+        "Social Media Manager",
+        "Public Relations Specialist",
+        "Content Creator"
+      ],
+      "programs": [
+        {
+          "program": "Marketing BAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Communication AAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Communication BAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Social Media Marketing Certificate",
+          "type": "Direct Preparation"
+        }
+      ]
+    },
+    "INFORMATION TECHNOLOGY AND DIGITAL SYSTEMS": {
+      "careers": [
+        "IT Support Specialist",
+        "Systems Administrator (entry-level)",
+        "Software Developer (junior)",
+        "Cybersecurity Technician"
+      ],
+      "programs": [
+        {
+          "program": "Information Technology AAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Information Technology BAS",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Technical Support Engineer Certificate",
+          "type": "Direct Preparation"
+        },
+        {
+          "program": "Software Engineering Certificate",
+          "type": "Foundational Preparation"
+        },
+        {
+          "program": "Cybersecurity Certificate",
+          "type": "Foundational Preparation"
+        }
+      ]
+    },
+    "HOSPITALITY AND SERVICE INDUSTRIES": {
+      "careers": [
+        "Hospitality Manager",
+        "Event Coordinator",
+        "Tourism Operations Manager"
+      ],
+      "programs": [
+        {
+          "program": "Hospitality and Tourism Management Certificate",
+          "type": "Direct Preparation"
+        }
+      ]
+    }
+  }
+}

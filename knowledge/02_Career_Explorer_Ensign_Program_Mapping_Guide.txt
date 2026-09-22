@@ -1,0 +1,119 @@
+DOCUMENT TITLE: Career Explorer - Ensign Program Mapping Guide
+AUDIENCE: Internal (AI agent only)
+PURPOSE: Maps career clusters to Ensign College programs as Direct Preparation, Foundational Preparation, or Not Offered. Use when connecting a student's career interests to Ensign programs - without over-promising or inventing pathways.
+TAGS: career-mapping, ensign-program-alignment, career-explorer-internal, program-fit, career-guidance
+
+---
+
+HOW TO USE THIS GUIDE
+
+This document supports career-to-program mapping only.
+Career fit always comes first. Programs are mentioned only when they clearly align.
+
+Use these three categories when referencing Ensign College programs:
+
+Direct Preparation: Ensign offers a program that directly prepares students for this career.
+Foundational Preparation: Ensign offers a program that builds transferable skills or entry-level preparation, but additional education or experience may be required.
+Not Offered: Ensign does not offer a direct program for this career.
+
+Never imply that completing a program guarantees a job.
+
+---
+
+CAREER CLUSTER TO ENSIGN PROGRAM ALIGNMENT
+
+ACCOUNTING AND FINANCE
+
+Careers in this cluster:
+- Accountant
+- Accounting Clerk
+- Financial Analyst (entry-level)
+- Bookkeeper
+
+Ensign College Programs:
+- Accounting (Certificate, AAS, BAS) - Direct Preparation
+- Finance BAS - Direct Preparation
+
+---
+
+BUSINESS AND MANAGEMENT
+
+Careers in this cluster:
+- Operations Manager
+- Project Coordinator
+- Business Analyst (entry-level)
+- Sales Manager
+
+Ensign College Programs:
+- Business Management BAS - Direct Preparation
+- Project Management (Certificate or AAS) - Direct Preparation
+- Professional Sales Certificate - Direct Preparation
+- Supply Chain Management Certificate - Direct Preparation
+
+---
+
+MARKETING, COMMUNICATION, AND MEDIA
+
+Careers in this cluster:
+- Marketing Specialist
+- Social Media Manager
+- Public Relations Specialist
+- Content Creator
+
+Ensign College Programs:
+- Marketing BAS - Direct Preparation
+- Communication (AAS or BAS) - Direct Preparation
+- Social Media Marketing Certificate - Direct Preparation
+
+---
+
+INFORMATION TECHNOLOGY AND DIGITAL SYSTEMS
+
+Careers in this cluster:
+- IT Support Specialist
+- Systems Administrator (entry-level)
+- Software Developer (junior)
+- Cybersecurity Technician
+
+Ensign College Programs:
+- Information Technology (AAS or BAS) - Direct Preparation
+- Technical Support Engineer Certificate - Direct Preparation
+- Software Engineering Certificate - Foundational Preparation
+- Cybersecurity Certificate - Foundational Preparation
+
+---
+
+HOSPITALITY AND SERVICE INDUSTRIES
+
+Careers in this cluster:
+- Hospitality Manager
+- Event Coordinator
+- Tourism Operations Manager
+
+Ensign College Programs:
+- Hospitality and Tourism Management Certificate - Direct Preparation
+
+---
+
+CAREERS NOT DIRECTLY OFFERED AT ENSIGN COLLEGE
+
+Examples:
+- Clinical Psychologist
+- Physician
+- Attorney
+- Licensed Counselor
+
+Guidance when these careers come up:
+- State clearly that Ensign College does not offer direct preparation for this career.
+- When appropriate, describe relevant Ensign programs as providing foundational skills in areas such as communication, leadership, business, or technology.
+- Encourage the student to speak with a Career Mentor for long-term planning and transfer pathway guidance.
+
+---
+
+IMPORTANT REMINDERS FOR THE AI AGENT
+
+- Use official Ensign College program names only. Cross-reference Document 1 (Ensign College Degrees and Certificates - Official Reference) when needed.
+- Distinguish clearly between certificates, associate degrees, and bachelor's degrees.
+- Do not recommend specific course sequences or schedules.
+- Defer all major selection decisions and academic planning to Academic Advisors.
+- Do not present this mapping as exhaustive. Career paths are not always linear, and students may benefit from programs not immediately obvious from their stated career goal.

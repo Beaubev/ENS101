@@ -1,0 +1,90 @@
+DOCUMENT TITLE: Ensign College Degrees and Certificates - Official Reference
+AUDIENCE: Internal (AI agent only)
+PURPOSE: Authoritative source of Ensign College academic programs. Use this document to verify program names before referencing them in any response. Never name a program that does not appear on this list.
+TAGS: ensign-programs, degrees-certificates, majors, academic-programs, official-reference
+
+---
+
+IMPORTANT USAGE RULE
+
+Only reference programs listed in this document. Do not invent, abbreviate, or assume programs exist outside this list. If a student asks about a program not found here, state clearly that Ensign College does not appear to offer that program and recommend they consult an Academic Advisor for current program availability.
+
+---
+
+PROGRAM CATALOG BY CATEGORY
+
+ACCOUNTING AND FINANCE
+
+- Accounting Certificate
+- Accounting AAS (Associate of Applied Science)
+- Accounting BAS (Bachelor of Applied Science)
+- Finance BAS (Bachelor of Applied Science)
+
+BUSINESS AND MANAGEMENT
+
+- Business Management BAS (Bachelor of Applied Science)
+- Project Management Certificate
+- Project Management AAS (Associate of Applied Science)
+- Professional Sales Certificate
+- Supply Chain Management Certificate
+
+MARKETING, COMMUNICATION, AND MEDIA
+
+- Marketing BAS (Bachelor of Applied Science)
+- Communication AAS (Associate of Applied Science)
+- Communication BAS (Bachelor of Applied Science)
+- Social Media Marketing Certificate
+
+INFORMATION TECHNOLOGY AND DIGITAL SYSTEMS
+
+- Information Technology AAS (Associate of Applied Science)
+- Information Technology BAS (Bachelor of Applied Science)
+- Technical Support Engineer Certificate
+- Software Engineering Certificate
+- Cybersecurity Certificate
+
+HOSPITALITY AND TOURISM
+
+- Hospitality and Tourism Management Certificate
+
+---
+
+DEGREE TYPES AT ENSIGN COLLEGE
+
+Certificate: A focused, shorter-term credential designed for workforce entry or skill development in a specific area.
+
+AAS (Associate of Applied Science): A two-year degree providing applied skills and foundational preparation for entry-level careers.
+
+BAS (Bachelor of Applied Science): A four-year applied bachelor's degree designed for career advancement and professional growth.
+
+---
+
+PROGRAM NAMING CONVENTIONS
+
+Always use the full official program name. Examples of correct usage:
+- Correct: "Accounting AAS" or "Accounting (Associate of Applied Science)"
+- Incorrect: "an accounting degree," "accounting program," "accounting major"
+
+Always distinguish between credential levels (Certificate vs. AAS vs. BAS) when discussing pathways.
+
+---
+
+WHAT ENSIGN COLLEGE DOES NOT OFFER
+
+Ensign College does not currently offer direct preparation programs for the following career types. Acknowledge this clearly when students ask about these areas:
+
+- Clinical or licensed healthcare professions (Physician, Nurse Practitioner, Licensed Clinical Social Worker)
+- Law (Attorney, Paralegal with licensure)
+- Licensed mental health counseling or clinical psychology
+- Graduate or doctoral-level fields
+
+When a program is not offered, do not imply one is "coming soon" or "available through a partner." Refer the student to an Academic Advisor or Career Mentor for guidance on transfer pathways or outside institutions.
+
+---
+
+REMINDERS FOR THE AI AGENT
+
+- Do not recommend specific course sequences or schedules.
+- Do not guarantee employment outcomes based on program completion.
+- Defer all questions about academic planning, program requirements, and enrollment to Academic Advisors.
+- This list reflects programs referenced as of the current knowledge base version. When in doubt, confirm with Academic Advising before stating a program exists.

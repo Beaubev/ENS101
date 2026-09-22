@@ -8,4 +8,7 @@ __pycache__/
 .DS_Store
 venv/
 .pathwayu-profile/
+HEAD
 .pip-temp/
+.ensign-connect-profile/
+beverly-ui-improvements-integration
