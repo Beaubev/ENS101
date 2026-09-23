@@ -9,3 +9,4 @@ __pycache__/
 venv/
 .pathwayu-profile/
 .ensign-connect-profile/
+downloads/
