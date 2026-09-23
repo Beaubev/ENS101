@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Zero-dependency backend for the ENS 101 Mentor Desk.
+"""Zero-dependency backend for ENS 101 App - 1.0.
 
 The app can use an optional OpenAI-compatible local endpoint, then an optional
 Gemini key, and always retains a useful offline guidance layer. No AI endpoint
@@ -300,12 +300,12 @@ class AdminCredential:
         except OSError:
             pass
         if len(self._read()) < self.MIN_PASSWORD_CHARACTERS:
-            raise RuntimeError("The ENS 101 Mentor Desk admin credential is invalid.")
+            raise RuntimeError("The ENS 101 App - 1.0 admin credential is invalid.")
 
     def _read(self) -> str:
         file_stat = self.path.lstat()
         if not stat.S_ISREG(file_stat.st_mode):
-            raise RuntimeError("The ENS 101 Mentor Desk admin credential is invalid.")
+            raise RuntimeError("The ENS 101 App - 1.0 admin credential is invalid.")
         return self.path.read_text(encoding="utf-8").rstrip("\n")
 
     @classmethod
@@ -1149,7 +1149,7 @@ def fallback_reply(message: str, mode: str, headers=None) -> str:
         return (
             "For all questions regarding internships, degree requirements, course pairing, timelines, and CPT authorization, "
             f"please consult the [Ensign Internship Expert]({url}) app. "
-            "The ENS 101 Mentor Desk does not answer internship questions directly—official internship policies and source-grounded answers are maintained in the Internship Expert."
+            "ENS 101 App - 1.0 does not answer internship questions directly—official internship policies and source-grounded answers are maintained in the Internship Expert."
         )
     lower = message.lower()
     if "follow-up" in lower or "message" in lower or "email" in lower:
@@ -1321,7 +1321,7 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
         reply = (
             "For all questions regarding internships, degree requirements, course pairing, timelines, and CPT authorization, "
             f"please consult the [Ensign Internship Expert]({url}) app. "
-            "The ENS 101 Mentor Desk does not answer internship questions directly—official internship policies and source-grounded answers are maintained in the Internship Expert."
+            "ENS 101 App - 1.0 does not answer internship questions directly—official internship policies and source-grounded answers are maintained in the Internship Expert."
         )
         return reply, True, "internship_redirect"
 
@@ -1344,7 +1344,7 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
     # 2. Career Explorer offline python fallback (for CE modes or when assessment data provided)
     if is_ce:
         notify_qwen_fallback(
-            service_name="ENS 101 Mentor Desk (Career Explorer)",
+            service_name="ENS 101 App - 1.0 (Career Explorer)",
             fallback_engine="Offline Career Explorer Python Engine",
             error_reason=qwen_error or "Qwen Local unavailable",
             prompt_snippet=message,
@@ -1357,7 +1357,7 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
             reply = query_gemini(message, mode, history)
             if reply:
                 notify_qwen_fallback(
-                    service_name="ENS 101 Mentor Desk",
+                    service_name="ENS 101 App - 1.0",
                     fallback_engine="Google Gemini",
                     error_reason=qwen_error or "Qwen Local unavailable",
                     prompt_snippet=message,
@@ -1368,7 +1368,7 @@ def ask_coach(message: str, mode: str, history: list[dict[str, str]], headers=No
 
     # 4. Final Fallback: Offline Appointment Guidance
     notify_qwen_fallback(
-        service_name="ENS 101 Mentor Desk",
+        service_name="ENS 101 App - 1.0",
         fallback_engine="Offline Python Engine",
         error_reason=qwen_error or "Qwen Local and Gemini unavailable",
         prompt_snippet=message,
@@ -1498,7 +1498,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
             active_eng = get_active_engine()
             self._json({
                 "status": "ok",
-                "service": "ENS 101 Mentor Desk",
+                "service": "ENS 101 App - 1.0",
                 "active_engine": active_eng,
                 "ai_configured": bool(LM_STUDIO_URL or GEMINI_API_KEY),
                 "primary_engine": "LM Studio Qwen" if LM_STUDIO_URL else "Not configured",
@@ -2333,7 +2333,7 @@ def main():
     server_address = (HOST, PORT)
     with ThreadingHTTPServer(server_address, CoachHandler) as httpd:
         print("================================================================")
-        print(f"ENS 101 Mentor Desk running at http://localhost:{PORT}")
+        print(f"ENS 101 App - 1.0 running at http://localhost:{PORT}")
         print(f"   Primary Engine:   {'OpenAI-compatible (' + QWEN_MODEL + ')' if LM_STUDIO_URL else 'Not configured'}")
         print(f"   Fallback Engine:  {'Google Gemini (' + GEMINI_MODEL + ')' if GEMINI_API_KEY else 'Offline Fallback (Set GEMINI_API_KEY to enable Gemini)'}")
         print(f"   Rate Limit:       {RATE_LIMIT} req/min per IP")

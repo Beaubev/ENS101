@@ -1,4 +1,4 @@
-# ENS 101 Mentor Desk
+# ENS 101 App - 1.0
 
 A focused appointment workspace for Ensign College career mentors. It turns **ENS 101 Appointment 1a: Ensign Connect and Internship Plan** into a clear five-stage workflow and keeps every linked tool close at hand.
 
@@ -15,15 +15,23 @@ A focused appointment workspace for Ensign College career mentors. It turns **EN
 - Privacy filters, rate limiting, and local feedback storage
 - Responsive desktop, tablet, and mobile layout
 
-## Run locally
+## Mentor access
 
-The core app uses only Python's standard library.
+The current app is hosted on the Mac Studio and is available to career mentors through the private Tailscale address:
 
-```powershell
-python app.py
-```
+[https://mac-studio-2.tail299fc7.ts.net/ens101/](https://mac-studio-2.tail299fc7.ts.net/ens101/)
 
-Open [http://localhost:5050](http://localhost:5050).
+Do not start a separate localhost copy on mentor workstations. GitHub and the Mac Studio deployment should remain the single source and running instance of this app.
+
+## App name and version numbering
+
+Display the version number after the app name using this format: **ENS 101 App - 1.0**.
+
+- **Small updates** — corrections, bug fixes, and minor UI changes — advance the hundredths place: `1.10` → `1.11` → `1.12`.
+- **New features** advance the tenths place: `1.1` → `1.2` → `1.3`.
+- **Major features or substantial redesigns** advance the whole number: `1.0` → `2.0` → `3.0`.
+
+When a larger version place advances, reset the smaller version place.
 
 ## Optional Career Explorer completion lookup
 

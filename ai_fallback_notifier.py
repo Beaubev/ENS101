@@ -349,7 +349,7 @@ def notify_qwen_fallback(
 
 if __name__ == "__main__":
     print(f"Testing AI Fallback Notifier for Rob Bagley ({RECIPIENT_EMAIL})...")
-    test_service = "ENS 101 Mentor Desk (Test)"
+    test_service = "ENS 101 App - 1.0 (Test)"
     test_fallback = "Google Gemini"
     test_error = "Connection refused to http://127.0.0.1:1234/v1/chat/completions (LM Studio offline or overwhelmed)"
     
