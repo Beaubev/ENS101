@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Owner-only recovery utility for the ENS 101 Mentor Desk admin password.
+"""Owner-only recovery utility for the ENS 101 App - 1.0 admin password.
 
 The password is collected with hidden terminal input. It is never accepted as
 a command-line argument and is never printed or logged.
@@ -22,7 +22,7 @@ def main() -> int:
         )
     ).expanduser()
     credential = AdminCredential(password_path)
-    first = getpass("New ENS 101 Mentor Desk admin password: ")
+    first = getpass("New ENS 101 App - 1.0 admin password: ")
     second = getpass("Confirm new admin password: ")
     if first != second:
         print("Passwords did not match. Nothing changed.")
@@ -35,7 +35,7 @@ def main() -> int:
     finally:
         first = ""
         second = ""
-    print("ENS 101 Mentor Desk admin password changed successfully.")
+    print("ENS 101 App - 1.0 admin password changed successfully.")
     return 0
 
 

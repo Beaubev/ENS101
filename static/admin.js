@@ -1,4 +1,4 @@
-/* ENS 101 Mentor Desk — Staff Admin Logic */
+/* ENS 101 App - 1.0 — Staff Admin Logic */
 
 (function () {
   'use strict';
