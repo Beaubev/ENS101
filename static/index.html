@@ -409,7 +409,16 @@
                   <label><span>Preferred name</span><input id="student-name" type="text" autocomplete="off" placeholder="e.g., Jordan" maxlength="60" /></label>
                   <label><span>Major or program</span><input id="student-program" type="text" autocomplete="off" placeholder="e.g., Software Engineering" maxlength="100" /></label>
                   <label><span>Career direction</span><input id="career-direction" type="text" autocomplete="off" placeholder="e.g., UX designer" maxlength="100" /></label>
-                  <label class="confidence-field"><span>Career confidence 1/10 <small class="confidence-hint">(1=Low, 10=Very Confident)</small>: <output id="confidence-output" for="career-confidence">Not set</output></span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
+                  <div class="confidence-field">
+                    <label for="career-confidence"><span>Career confidence 1/10 <small class="confidence-hint">(1=Low, 10=Very Confident)</small>: <output id="confidence-output" for="career-confidence">Not set</output></span><input id="career-confidence" type="range" min="1" max="10" value="5" /></label>
+                    <a
+                      id="career-explorer-direct-link"
+                      class="confidence-career-link"
+                      href="https://ensign.pathwayu.com/login?next=%2Fresults"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >Open Career Explorer <span aria-hidden="true">↗</span></a>
+                  </div>
                   <label><span>Career Explorer roadmap</span><select id="roadmap-status"><option value="">Choose status</option><option>Not started</option><option>In progress</option><option>Completed</option><option>Not sure</option></select></label>
                 </div>
                 <!-- Status Badges Row (Career Explorer & Ensign Connect) -->
