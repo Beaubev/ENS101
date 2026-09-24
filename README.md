@@ -1,4 +1,4 @@
-# ENS 101 App - 1.0
+# ENS 101 Mentor Desk v1.0
 
 A focused appointment workspace for Ensign College career mentors. It turns **ENS 101 Appointment 1a: Ensign Connect and Internship Plan** into a clear five-stage workflow and keeps every linked tool close at hand.
 
@@ -25,7 +25,7 @@ Do not start a separate localhost copy on mentor workstations. GitHub and the Ma
 
 ## App name and version numbering
 
-Display the version number after the app name using this format: **ENS 101 App - 1.0**.
+Display the version number after the app name using this format: **ENS 101 Mentor Desk v1.0**.
 
 - **Small updates** — corrections, bug fixes, and minor UI changes — advance the hundredths place: `1.10` → `1.11` → `1.12`.
 - **New features** advance the tenths place: `1.1` → `1.2` → `1.3`.

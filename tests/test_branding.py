@@ -4,7 +4,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_NAME = "ENS 101 App - 1.0"
+APP_NAME = "ENS 101 Mentor Desk v1.0"
 
 
 class PageTextParser(HTMLParser):
@@ -52,32 +52,29 @@ class BrandingTests(unittest.TestCase):
         self.assertEqual(APP_NAME, page.title)
         self.assertIn(APP_NAME, page.text)
 
+    def test_main_page_visible_brand_uses_the_canonical_name(self):
+        page_source = (ROOT / "static/index.html").read_text(encoding="utf-8")
+
+        self.assertIn(
+            '<strong>ENS 101 Mentor Desk</strong><small>v1.0</small>',
+            page_source,
+        )
+        self.assertNotIn("ENS 101 App", page_source)
+
     def test_admin_page_displays_versioned_app_name(self):
         page = parse_page("static/admin.html")
 
         self.assertIn(APP_NAME, page.title)
         self.assertIn(APP_NAME, page.text)
 
-    def test_legacy_name_is_reserved_for_existing_data_directory(self):
-        allowed = {
-            (
-                "app.py",
-                'return Path.home() / "Library" / "Application Support" / "ENS 101 Mentor Desk"',
-            )
-        }
-        occurrences = set()
+    def test_main_and_admin_pages_use_the_same_app_name(self):
+        main_page = parse_page("static/index.html")
+        admin_page = parse_page("static/admin.html")
 
-        for path in ROOT.rglob("*"):
-            if not path.is_file() or path.suffix not in {".py", ".html", ".js", ".css", ".md"}:
-                continue
-            if any(part in {".git", "venv", "tests", "__pycache__", ".playwright-cli"} for part in path.parts):
-                continue
-            relative_path = path.relative_to(ROOT).as_posix()
-            for line in path.read_text(encoding="utf-8").splitlines():
-                if "ENS 101 Mentor Desk" in line:
-                    occurrences.add((relative_path, line.strip()))
-
-        self.assertEqual(allowed, occurrences)
+        self.assertEqual(APP_NAME, main_page.title)
+        self.assertIn(APP_NAME, main_page.text)
+        self.assertIn(APP_NAME, admin_page.title)
+        self.assertIn(APP_NAME, admin_page.text)
 
 
 if __name__ == "__main__":

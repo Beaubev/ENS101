@@ -18,7 +18,7 @@
 - Reject incompatible projection versions and incomplete response contracts visibly.
 - Data older than 36 hours remains usable with a stale warning.
 - Preserve manual PDF upload as an explicit workflow; it must not write to Student Readiness.
-- Keep the app name `ENS 101 App - 1.0` unless a separate versioning decision changes it.
+- Use the app name `ENS 101 Mentor Desk v1.0` consistently.
 - Never add real student data to tests, logs, screenshots, commits, or handoff messages.
 
 ## Review Focus
@@ -405,7 +405,7 @@ Pull the reviewed ENS branch into `/Users/robbagley/CCowork-Local-Apps/ens-101-m
 
 At `/ens101/`, confirm:
 
-- App name remains `ENS 101 App - 1.0`.
+- App name is `ENS 101 Mentor Desk v1.0`.
 - Main action says `Check Student Readiness`.
 - No source connection/login badge or “Check live” control exists.
 - A synthetic/test fixture shows the last import timestamp and fresh/stale state.
