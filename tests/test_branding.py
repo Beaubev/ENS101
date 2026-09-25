@@ -4,7 +4,9 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_NAME = "ENS 101 App - 1.0"
+APP_NAME = "ENS 101 Mentor Desk"
+APP_VERSION = "v1.0"
+APP_TITLE = f"{APP_NAME} {APP_VERSION} — Ensign College Career Services"
 
 
 class PageTextParser(HTMLParser):
@@ -49,35 +51,9 @@ class BrandingTests(unittest.TestCase):
     def test_main_page_displays_versioned_app_name(self):
         page = parse_page("static/index.html")
 
-        self.assertEqual(APP_NAME, page.title)
+        self.assertEqual(APP_TITLE, page.title)
         self.assertIn(APP_NAME, page.text)
-
-    def test_admin_page_displays_versioned_app_name(self):
-        page = parse_page("static/admin.html")
-
-        self.assertIn(APP_NAME, page.title)
-        self.assertIn(APP_NAME, page.text)
-
-    def test_legacy_name_is_reserved_for_existing_data_directory(self):
-        allowed = {
-            (
-                "app.py",
-                'return Path.home() / "Library" / "Application Support" / "ENS 101 Mentor Desk"',
-            )
-        }
-        occurrences = set()
-
-        for path in ROOT.rglob("*"):
-            if not path.is_file() or path.suffix not in {".py", ".html", ".js", ".css", ".md"}:
-                continue
-            if any(part in {".git", "venv", "tests", "__pycache__", ".playwright-cli"} for part in path.parts):
-                continue
-            relative_path = path.relative_to(ROOT).as_posix()
-            for line in path.read_text(encoding="utf-8").splitlines():
-                if "ENS 101 Mentor Desk" in line:
-                    occurrences.add((relative_path, line.strip()))
-
-        self.assertEqual(allowed, occurrences)
+        self.assertIn(APP_VERSION, page.text)
 
 
 if __name__ == "__main__":

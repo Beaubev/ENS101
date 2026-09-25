@@ -7,7 +7,9 @@
     <meta name="description" content="A guided workspace for Ensign College ENS 101 mentor appointments." />
     <title>ENS 101 Mentor Desk v1.0 — Ensign College Career Services</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="ces-tokens.css?v=1.1" />
+    <link rel="stylesheet" href="ces-components.css?v=1.1" />
+    <link rel="stylesheet" href="styles.css?v=13" />
     <!-- Vercel Web Analytics -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -22,9 +24,9 @@
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#" aria-label="ENS 101 App - 1.0 home">
+        <a class="brand" href="#" aria-label="ENS 101 Mentor Desk home">
           <span class="brand-mark" aria-hidden="true">E</span>
-          <span class="brand-copy"><strong>ENS 101 App</strong><small>- 1.0</small></span>
+          <span class="brand-copy"><strong>ENS 101 Mentor Desk</strong><span class="ces-version-tag" aria-label="Version 1.0">v1.0</span></span>
         </a>
         <nav class="top-nav" aria-label="Main navigation">
           <button class="top-nav-button active" data-view="appointment" type="button">Tasks</button>
@@ -605,6 +607,7 @@
 
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
+    <script src="ces-motion.js"></script>
     <script src="app.js?v=12"></script>
   </body>
 </html>
