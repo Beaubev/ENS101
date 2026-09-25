@@ -56,7 +56,8 @@ class BrandingTests(unittest.TestCase):
         page_source = (ROOT / "static/index.html").read_text(encoding="utf-8")
 
         self.assertIn(
-            '<strong>ENS 101 Mentor Desk</strong><small>v1.0</small>',
+            '<strong>ENS 101 Mentor Desk</strong>'
+            '<span class="ces-version-tag" aria-label="Version 1.0">v1.0</span>',
             page_source,
         )
         self.assertNotIn("ENS 101 App", page_source)
