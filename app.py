@@ -7,8 +7,6 @@ is contacted unless it is explicitly configured in the environment.
 """
 
 import base64
-import hashlib
-import hmac
 import ipaddress
 import json
 import os
@@ -17,14 +15,11 @@ import secrets
 import sqlite3
 import ssl
 import stat
-import subprocess
-import sys
 import tempfile
 import threading
 import time
 import uuid
 from collections import defaultdict
-from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -41,6 +36,13 @@ from career_explorer_engine import (
     TRAIT_EXPLANATIONS, MAJOR_ALIGNMENTS, CAREER_ALIGNMENTS,
 )
 from urllib.request import Request, urlopen
+
+from readiness_client import (
+    ReadinessContractError,
+    ReadinessRequestError,
+    ReadinessUnavailable,
+    lookup_ens101_projection,
+)
 
 try:
     from ai_fallback_notifier import notify_qwen_fallback
@@ -74,9 +76,6 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip()
 PORT = int(os.environ.get("PORT", "5050"))
 HOST = os.environ.get("HOST", "0.0.0.0")
 RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MIN", "50"))
-ENSIGN_CONNECT_CACHE_MAX_AGE_SECONDS = int(
-    os.environ.get("ENSIGN_CONNECT_CACHE_MAX_AGE_SECONDS", str(24 * 60 * 60))
-)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 _configured_db_path = os.environ.get("ENS101_DB_PATH", "").strip()
@@ -87,178 +86,49 @@ DB_PATH = (
 )
 ROOT_DIR = Path(__file__).resolve().parent
 
-try:
-    from pathwayu_admin_client import (
-        HAVE_PLAYWRIGHT,
-        check_admin_session,
-        lookup_student_completion,
-        lookup_student_report,
-        launch_interactive_login,
-        clean_stale_profile_locks,
-        configure as _configure_pathwayu,
-    )
-    # Use this app's directory for downloaded reports
-    _configure_pathwayu(downloads_dir=ROOT_DIR / "downloads")
-except ImportError:
-    HAVE_PLAYWRIGHT = False
-    check_admin_session = None
-    lookup_student_completion = None
-    lookup_student_report = None
-    launch_interactive_login = None
-    clean_stale_profile_locks = None
-
-try:
-    from ensign_connect_client import (
-        check_connect_session,
-        lookup_student_connect,
-    )
-    HAVE_CONNECT_LOOKUP = True
-except ImportError:
-    check_connect_session = None
-    lookup_student_connect = None
-    HAVE_CONNECT_LOOKUP = False
-
 ENSIGN_EMAIL_PATTERN = re.compile(r"^[^@\s]+@ensign\.edu$", re.IGNORECASE)
-PATHWAYU_LOGIN_PROCESS = None
-CONNECT_LOGIN_PROCESS = None
 
-# ==============================================================================
-# STUDENT READINESS HUB CONSUMER CLIENT
-# ==============================================================================
+# Student readiness comes only from the Student Readiness Hub `ens101.v1`
+# projection. These former live PeopleGrove / Career Explorer endpoints answer
+# 410 Gone for one release so stale clients fail visibly instead of silently.
+RETIRED_SOURCE_ENDPOINTS = frozenset({
+    "/api/career-explorer/session",
+    "/api/career-explorer/admin-status",
+    "/api/career-explorer/launch-login",
+    "/api/career-explorer/lookup",
+    "/api/ensign-connect/session",
+    "/api/ensign-connect/admin-status",
+    "/api/ensign-connect/launch-login",
+    "/api/ensign-connect/lookup",
+    "/api/ensign-connect/lookup-live",
+})
 
-READINESS_HUB_URL = os.environ.get("READINESS_HUB_URL", "http://127.0.0.1:5055")
-READINESS_DATA_DIR = Path.home() / "Library" / "Application Support" / "Ensign Student Readiness Hub"
-READINESS_TOKEN_PATH = READINESS_DATA_DIR / "consumer-token"
-READINESS_KEY_PATH = READINESS_DATA_DIR / "fingerprint-key"
-SHARED_ONEDRIVE_SNAPSHOT = Path(
-    os.environ.get(
-        "READINESS_HUB_SNAPSHOT_PATH",
-        "/Users/robbagley/Library/CloudStorage/OneDrive-EnsignCollege"
-        "/2 - Areas ODrive/CIS - General/3 - Resources/DATA/STUDENT/ENSIGN_CONNECT_PEOPLEGROVE"
-        "/readiness_snapshot_v1.json",
-    )
-)
-LEGACY_ONEDRIVE_SNAPSHOT = Path(
-    "/Users/robbagley/Library/CloudStorage/OneDrive-EnsignCollege"
-    "/2 - Areas ODrive/CIS - General/3 - Resources/Alumni/Ensign_Connect_DATA"
-    "/readiness_snapshot_v1.json"
-)
 
-def _get_readiness_token() -> str | None:
+def build_student_readiness_response(email: str, lookup_fn=None) -> tuple[HTTPStatus, dict]:
+    """Translate one ens101.v1 lookup into an HTTP status and body. Never falls back."""
+    lookup_fn = lookup_fn or lookup_ens101_projection
     try:
-        if READINESS_TOKEN_PATH.exists():
-            token = READINESS_TOKEN_PATH.read_text(encoding="utf-8").strip()
-            if token:
-                return token
-    except Exception:
-        pass
-    return None
-
-def _get_readiness_fingerprint_key() -> bytes | None:
-    try:
-        if READINESS_KEY_PATH.exists():
-            key_bytes = READINESS_KEY_PATH.read_bytes().strip()
-            if len(key_bytes) == 32:
-                return key_bytes
-    except Exception:
-        pass
-    return None
-
-def _email_fingerprint(email: str, key: bytes) -> str:
-    norm = email.strip().lower()
-    return hmac.new(key, norm.encode("utf-8"), hashlib.sha256).hexdigest()
-
-def lookup_readiness_hub(email: str) -> dict | None:
-    """Queries the Student Readiness Hub consumer API, with fallback to shared OneDrive snapshot."""
-    norm_email = email.strip().lower()
-    token = _get_readiness_token()
-
-    # 1. Try local consumer API on port 5055
-    if token:
-        try:
-            url = f"{READINESS_HUB_URL}/api/v1/lookup"
-            payload = json.dumps({"email": norm_email, "refresh_pathwayu": False}).encode("utf-8")
-            req = Request(
-                url,
-                data=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-Readiness-Token": token,
-                },
-                method="POST"
-            )
-            with urlopen(req, timeout=4.0) as resp:
-                if resp.status == 200:
-                    data = json.loads(resp.read().decode("utf-8"))
-                    pg = data.get("peoplegrove", {})
-                    is_ready = bool(pg.get("authenticated") or pg.get("status") in ("authenticated", "current", "stale_match"))
-                    return {
-                        "email": norm_email,
-                        "peoplegrove_ready": is_ready,
-                        "peoplegrove": pg,
-                        "pathwayu": data.get("pathwayu"),
-                        "source": pg.get("source", "Student Readiness Hub API"),
-                        "checked_at": pg.get("checked_at") or data.get("checked_at"),
-                    }
-        except Exception:
-            pass
-
-    # 2. Fallback: Read shared atomic OneDrive snapshot
-    try:
-        snap_path = SHARED_ONEDRIVE_SNAPSHOT if SHARED_ONEDRIVE_SNAPSHOT.exists() else LEGACY_ONEDRIVE_SNAPSHOT
-        if snap_path.exists():
-            key = _get_readiness_fingerprint_key()
-            if key:
-                fp = _email_fingerprint(norm_email, key)
-                with open(snap_path, "r", encoding="utf-8") as f:
-                    snapshot = json.load(f)
-                accounts = set(snapshot.get("accounts", []))
-                is_ready = fp in accounts
-                return {
-                    "email": norm_email,
-                    "peoplegrove_ready": is_ready,
-                    "peoplegrove": {"status": "current" if is_ready else "not_found", "authenticated": is_ready},
-                    "source": "OneDrive snapshot fallback",
-                    "checked_at": snapshot.get("generated_at", ""),
-                }
-    except Exception:
-        pass
-
-    return None
-
-def publish_pathwayu_result_to_hub(email: str, status: str, completed_count: int = 4, total: int = 4, missing: list | None = None) -> None:
-    """Asynchronously syncs definitive Career Explorer results to Student Readiness Hub cache."""
-    token = _get_readiness_token()
-    if not token:
-        return
-    norm_email = email.strip().lower()
-    stat = "complete" if status in ("complete", "success") else status
-    payload = json.dumps({
-        "email": norm_email,
-        "status": stat,
-        "completed_count": completed_count,
-        "total": total,
-        "missing": missing or [],
-    }).encode("utf-8")
-
-    def _post():
-        try:
-            url = f"{READINESS_HUB_URL}/api/v1/pathwayu-result"
-            req = Request(
-                url,
-                data=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "X-Readiness-Token": token,
-                },
-                method="POST"
-            )
-            with urlopen(req, timeout=2.0) as resp:
-                pass
-        except Exception:
-            pass
-
-    threading.Thread(target=_post, daemon=True).start()
+        payload = lookup_fn(email)
+    except ReadinessUnavailable as error:
+        print(f"[Student Readiness] {type(error).__name__}")
+        return HTTPStatus.SERVICE_UNAVAILABLE, {
+            "status": "temporarily_unavailable",
+            "message": "Student Readiness is temporarily unavailable.",
+        }
+    except ReadinessContractError:
+        print("[Student Readiness] ReadinessContractError")
+        return HTTPStatus.BAD_GATEWAY, {
+            "status": "incompatible_schema",
+            "message": "Student Readiness returned an unsupported data version.",
+        }
+    except ReadinessRequestError:
+        return HTTPStatus.BAD_REQUEST, {
+            "status": "invalid_request",
+            "message": "Student Readiness rejected this lookup.",
+        }
+    if payload["record_status"] == "not_found":
+        return HTTPStatus.NOT_FOUND, payload
+    return HTTPStatus.OK, payload
 
 # ==============================================================================
 # 2. LOCAL FEEDBACK & SUGGESTIONS DATABASE (SQLITE) & ADMIN CREDENTIALS
@@ -595,46 +465,6 @@ def get_appointment_by_id(appointment_id: str) -> dict | None:
             except Exception:
                 data["checked_tasks"] = {}
         return data
-
-
-def get_ensign_connect_cache(email: str) -> dict | None:
-    """Return a cached account result only while it is within the daily refresh window."""
-    normalized = email.strip().lower()
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM ensign_connect_cache WHERE student_email = ?", (normalized,))
-        row = cursor.fetchone()
-        if not row:
-            return None
-
-        cached = dict(row)
-        try:
-            checked_at = datetime.strptime(
-                cached["checked_at"], "%Y-%m-%d %H:%M:%S UTC"
-            ).replace(tzinfo=timezone.utc)
-        except (KeyError, TypeError, ValueError):
-            # An unreadable timestamp must never make a stale result look current.
-            return None
-
-        age_seconds = (datetime.now(timezone.utc) - checked_at).total_seconds()
-        return cached if 0 <= age_seconds < ENSIGN_CONNECT_CACHE_MAX_AGE_SECONDS else None
-
-
-def set_ensign_connect_cache(email: str, has_account: bool, profile_url: str = None) -> dict:
-    normalized = email.strip().lower()
-    now = time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            INSERT INTO ensign_connect_cache (student_email, has_account, profile_url, checked_at)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(student_email) DO UPDATE SET
-                has_account = excluded.has_account,
-                profile_url = excluded.profile_url,
-                checked_at = excluded.checked_at
-        """, (normalized, 1 if has_account else 0, profile_url, now))
-        conn.commit()
-    return {"student_email": normalized, "has_account": 1 if has_account else 0, "profile_url": profile_url, "checked_at": now}
 
 
 def save_appointment(data: dict) -> dict:
@@ -1435,6 +1265,12 @@ class CoachHandler(SimpleHTTPRequestHandler):
         if not head_only:
             self.wfile.write(body)
 
+    def _json_retired(self):
+        self._json({
+            "status": "retired",
+            "message": "This endpoint was retired. Use /api/student-readiness/lookup.",
+        }, HTTPStatus.GONE)
+
     def _is_admin_authenticated(self) -> bool:
         auth_header = self.headers.get("X-ENS101-Admin", "").strip()
         if not auth_header:
@@ -1449,48 +1285,8 @@ class CoachHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         clean_path = self.path.split("?")[0]
-        if clean_path in ("/api/career-explorer/admin-status", "/api/career-explorer/session"):
-            if not self._career_lookup_is_local():
-                self._json({
-                    "authenticated": False,
-                    "available": False,
-                    "status": "local_only",
-                    "message": "Career Explorer lookup is available only on the mentor workstation.",
-                }, HTTPStatus.FORBIDDEN)
-                return
-            if not check_admin_session:
-                self._json({
-                    "authenticated": False,
-                    "available": False,
-                    "status": "unavailable",
-                    "message": "Career Explorer lookup is not installed.",
-                }, HTTPStatus.SERVICE_UNAVAILABLE)
-                return
-            result = check_admin_session()
-            if isinstance(result, dict):
-                result.setdefault("available", bool(HAVE_PLAYWRIGHT))
-            self._json(result)
-            return
-
-        if clean_path in ("/api/ensign-connect/admin-status", "/api/ensign-connect/session"):
-            if not self._career_lookup_is_local():
-                self._json({
-                    "authenticated": False,
-                    "available": False,
-                    "status": "local_only",
-                    "message": "Ensign Connect lookup is available only on the mentor workstation.",
-                }, HTTPStatus.FORBIDDEN)
-                return
-            if not check_connect_session:
-                self._json({
-                    "authenticated": False,
-                    "available": False,
-                    "status": "unavailable",
-                    "message": "Ensign Connect lookup is not installed.",
-                }, HTTPStatus.SERVICE_UNAVAILABLE)
-                return
-            result = check_connect_session()
-            self._json(result)
+        if clean_path in RETIRED_SOURCE_ENDPOINTS:
+            self._json_retired()
             return
 
         # Health & status endpoints
@@ -1506,8 +1302,7 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 "primary_configured": bool(LM_STUDIO_URL),
                 "fallback_engine": "Google Gemini" if GEMINI_API_KEY else "Static Fallback",
                 "fallback_configured": bool(GEMINI_API_KEY),
-                "career_explorer_lookup_available": HAVE_PLAYWRIGHT,
-                "ensign_connect_lookup_available": HAVE_CONNECT_LOOKUP,
+                "readiness_source": "Student Readiness ens101.v1",
                 "rate_limit_per_min": RATE_LIMIT,
             })
             return
@@ -1645,58 +1440,18 @@ class CoachHandler(SimpleHTTPRequestHandler):
         # valid API endpoint into a static-file 404.
         clean_path = self.path.split("?")[0]
 
-        # ----------------------------------------------------------------------
-        # Career Explorer completion lookup (optional local Playwright helper)
-        # ----------------------------------------------------------------------
-        if self.path == "/api/career-explorer/launch-login":
-            global PATHWAYU_LOGIN_PROCESS
-            if not self._career_lookup_is_local():
-                self._json({
-                    "status": "local_only",
-                    "message": "Career Explorer authentication is available only on the mentor workstation.",
-                }, HTTPStatus.FORBIDDEN)
-                return
-            if not HAVE_PLAYWRIGHT:
-                self._json({
-                    "status": "unavailable",
-                    "message": "Install the optional Career Explorer lookup before authenticating.",
-                }, HTTPStatus.SERVICE_UNAVAILABLE)
-                return
-
-            if PATHWAYU_LOGIN_PROCESS and PATHWAYU_LOGIN_PROCESS.poll() is None:
-                self._json({
-                    "status": "login_in_progress",
-                    "in_progress": True,
-                    "message": "The authentication window is already open. Complete SSO in that window.",
-                })
-                return
-
-            try:
-                if clean_stale_profile_locks:
-                    clean_stale_profile_locks()
-                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-                PATHWAYU_LOGIN_PROCESS = subprocess.Popen(
-                    [sys.executable, str(ROOT_DIR / "login_pathwayu_admin.py")],
-                    cwd=str(ROOT_DIR),
-                    creationflags=creation_flags,
-                )
-                self._json({
-                    "status": "login_started",
-                    "message": "The Career Explorer authentication window is opening.",
-                })
-            except Exception as error:
-                print(f"[PathwayU Login Error] {error}")
-                self._json({
-                    "status": "error",
-                    "message": "The Career Explorer authentication window could not be opened.",
-                }, HTTPStatus.INTERNAL_SERVER_ERROR)
+        if clean_path in RETIRED_SOURCE_ENDPOINTS:
+            self._json_retired()
             return
 
-        if self.path == "/api/career-explorer/lookup":
+        # ----------------------------------------------------------------------
+        # Student Readiness lookup (Student Readiness Hub ens101.v1 only)
+        # ----------------------------------------------------------------------
+        if clean_path == "/api/student-readiness/lookup":
             if not self._career_lookup_is_local():
                 self._json({
                     "status": "local_only",
-                    "message": "Career Explorer lookup is available only on the mentor workstation.",
+                    "message": "Student Readiness lookup is available only on the mentor workstation.",
                 }, HTTPStatus.FORBIDDEN)
                 return
             client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
@@ -1712,11 +1467,9 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 if content_length <= 0 or content_length > 8192:
                     raise ValueError("Invalid body size")
                 data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                email = str(data.get("email", "")).strip().lower()
             except Exception:
-                self._json({"status": "error", "message": "Invalid request."}, HTTPStatus.BAD_REQUEST)
-                return
-
-            email = str(data.get("email", "")).strip().lower()
+                email = ""
             if not ENSIGN_EMAIL_PATTERN.fullmatch(email):
                 self._json({
                     "status": "invalid_email",
@@ -1724,232 +1477,8 @@ class CoachHandler(SimpleHTTPRequestHandler):
                 }, HTTPStatus.BAD_REQUEST)
                 return
 
-            clean_email_file = re.sub(r"[^a-zA-Z0-9_.-]", "_", email.lower())
-            found_pdf = None
-
-            # 1. Check if a downloaded report PDF already exists on disk
-            potential_dirs = [
-                ROOT_DIR / "downloads",
-                ROOT_DIR.parent / "mentor-career-explorer-coach-ai" / "downloads",
-                ROOT_DIR.parent / "AI AGENTS LOCAL LLM" / "shared" / "downloads",
-            ]
-            for pdir in potential_dirs:
-                if pdir.exists():
-                    matches = list(pdir.glob(f"{clean_email_file}_*.pdf"))
-                    if matches:
-                        matches.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-                        found_pdf = matches[0]
-                        break
-
-            parsed_data = None
-            if found_pdf and found_pdf.exists():
-                try:
-                    with open(found_pdf, "rb") as f:
-                        pdf_bytes = f.read()
-                    extracted_text = extract_text_from_pdf(pdf_bytes)
-                    parsed_data = parse_pathwayu_text(extracted_text)
-                except Exception as ex:
-                    print(f"[PDF Cached Parse Error] {ex}")
-
-            # If we already have a parsed report with complete status, return immediately
-            if parsed_data and parsed_data.get("completed_count") == 4:
-                publish_pathwayu_result_to_hub(email, "complete", 4, 4, [])
-                result = {
-                    "success": True,
-                    "status": "complete",
-                    "student_email": email,
-                    "completed_count": 4,
-                    "total": 4,
-                    "completed": ["Interests", "Values", "Personality", "Workplace Preferences"],
-                    "missing": [],
-                    "file_path": str(found_pdf),
-                    "filename": found_pdf.name,
-                    "download_url": f"/api/career-explorer/download-report?file={found_pdf.name}&name=Career_Explorer_Report_{clean_email_file}.pdf",
-                    "parsed_data": parsed_data,
-                    "message": f"Career Explorer report loaded for {email}."
-                }
-                self._json(result)
-                return
-
-            # 2. If not cached, perform lookup via persistent Playwright admin client
-            if lookup_student_report:
-                result = lookup_student_report(email)
-                if result.get("status") in ("success", "complete") and result.get("file_path"):
-                    pdf_file = Path(result["file_path"])
-                    if pdf_file.exists():
-                        try:
-                            with open(pdf_file, "rb") as f:
-                                pdf_bytes = f.read()
-                            extracted_text = extract_text_from_pdf(pdf_bytes)
-                            parsed_data = parse_pathwayu_text(extracted_text)
-                            result["parsed_data"] = parsed_data
-                            result["status"] = "complete"
-                            result["filename"] = pdf_file.name
-                            result["download_url"] = f"/api/career-explorer/download-report?file={pdf_file.name}&name=Career_Explorer_Report_{clean_email_file}.pdf"
-                            publish_pathwayu_result_to_hub(email, "complete", 4, 4, [])
-                        except Exception as ex:
-                            print(f"[Downloaded PDF Parse Error] {ex}")
-            elif lookup_student_completion:
-                result = lookup_student_completion(email)
-                if result.get("status") in ("complete", "incomplete", "not_found"):
-                    publish_pathwayu_result_to_hub(
-                        email,
-                        result.get("status"),
-                        result.get("completed_count", 0),
-                        result.get("total", 4),
-                        result.get("missing", [])
-                    )
-                if parsed_data:
-                    result["parsed_data"] = parsed_data
-            else:
-                self._json({
-                    "status": "unavailable",
-                    "message": "Career Explorer lookup is not installed.",
-                }, HTTPStatus.SERVICE_UNAVAILABLE)
-                return
-
-            if parsed_data and "parsed_data" not in result:
-                result["parsed_data"] = parsed_data
-
-            response_status = {
-                "unavailable": HTTPStatus.SERVICE_UNAVAILABLE,
-                "auth_required": HTTPStatus.UNAUTHORIZED,
-                "timeout": HTTPStatus.GATEWAY_TIMEOUT,
-                "error": HTTPStatus.BAD_GATEWAY,
-            }.get(result.get("status"), HTTPStatus.OK)
-            self._json(result, response_status)
-            return
-
-        # ----------------------------------------------------------------------
-        # Ensign Connect (PeopleGrove) student account lookup
-        # ----------------------------------------------------------------------
-        if self.path == "/api/ensign-connect/launch-login":
-            global CONNECT_LOGIN_PROCESS
-            if not self._career_lookup_is_local():
-                self._json({
-                    "status": "local_only",
-                    "message": "Ensign Connect authentication is available only on the mentor workstation.",
-                }, HTTPStatus.FORBIDDEN)
-                return
-            if not HAVE_PLAYWRIGHT:
-                self._json({
-                    "status": "unavailable",
-                    "message": "Install the optional Playwright setup before authenticating.",
-                }, HTTPStatus.SERVICE_UNAVAILABLE)
-                return
-
-            if CONNECT_LOGIN_PROCESS and CONNECT_LOGIN_PROCESS.poll() is None:
-                self._json({
-                    "status": "login_in_progress",
-                    "message": "The Ensign Connect authentication window is already open.",
-                })
-                return
-
-            try:
-                creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-                CONNECT_LOGIN_PROCESS = subprocess.Popen(
-                    [sys.executable, str(ROOT_DIR / "login_ensign_connect.py")],
-                    cwd=str(ROOT_DIR),
-                    creationflags=creation_flags,
-                )
-                self._json({
-                    "status": "login_started",
-                    "message": "The Ensign Connect authentication window is opening.",
-                })
-            except Exception as error:
-                print(f"[Ensign Connect Login Error] {error}")
-                self._json({
-                    "status": "error",
-                    "message": "The Ensign Connect authentication window could not be opened.",
-                }, HTTPStatus.INTERNAL_SERVER_ERROR)
-            return
-
-        if self.path in ("/api/ensign-connect/lookup", "/api/ensign-connect/lookup-live"):
-            force_live = (self.path == "/api/ensign-connect/lookup-live")
-            if not self._career_lookup_is_local():
-                self._json({
-                    "status": "local_only",
-                    "message": "Ensign Connect lookup is available only on the mentor workstation.",
-                }, HTTPStatus.FORBIDDEN)
-                return
-            client_ip = self.headers.get("X-Forwarded-For", self.client_address[0]).split(",")[0].strip()
-            if not RATE_LIMITER.is_allowed(client_ip):
-                self._json({
-                    "status": "rate_limited",
-                    "message": "Please wait a moment before checking another student.",
-                }, HTTPStatus.TOO_MANY_REQUESTS)
-                return
-
-            try:
-                content_length = int(self.headers.get("Content-Length", "0"))
-                if content_length <= 0 or content_length > 8192:
-                    raise ValueError("Invalid body size")
-                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
-            except Exception:
-                self._json({"status": "error", "message": "Invalid request."}, HTTPStatus.BAD_REQUEST)
-                return
-
-            email = str(data.get("email", "")).strip().lower()
-            if not ENSIGN_EMAIL_PATTERN.fullmatch(email):
-                self._json({
-                    "status": "invalid_email",
-                    "message": "Enter the student's @ensign.edu email address.",
-                }, HTTPStatus.BAD_REQUEST)
-                return
-
-            # Check local cache first unless force_live is requested
-            if not force_live:
-                cached = get_ensign_connect_cache(email)
-                if cached:
-                    self._json({
-                        "found": bool(cached["has_account"]),
-                        "status": "found" if cached["has_account"] else "not_found",
-                        "profile_url": cached["profile_url"],
-                        "cached": True,
-                        "checked_at": cached["checked_at"],
-                        "message": "Student has an Ensign Connect account (cached)." if cached["has_account"] else "No Ensign Connect account found (cached).",
-                    })
-                    return
-
-            # 1. Primary: Student Readiness Hub (authoritative PeopleGrove saved report datastore)
-            hub_result = lookup_readiness_hub(email)
-            if hub_result and "peoplegrove_ready" in hub_result:
-                is_ready = bool(hub_result["peoplegrove_ready"])
-                checked_at = hub_result.get("checked_at") or datetime.now(timezone.utc).isoformat()
-                cached_data = set_ensign_connect_cache(email, is_ready, None)
-                self._json({
-                    "found": is_ready,
-                    "status": "found" if is_ready else "not_found",
-                    "profile_url": None,
-                    "cached": False,
-                    "checked_at": cached_data.get("checked_at", checked_at),
-                    "source": hub_result.get("source", "Student Readiness Hub"),
-                    "message": "Student has an Ensign Connect account." if is_ready else "No Ensign Connect account found.",
-                })
-                return
-
-            # 2. Fallback: interactive browser lookup if installed
-            if not lookup_student_connect:
-                self._json({
-                    "status": "unavailable",
-                    "message": "Ensign Connect lookup is not installed.",
-                }, HTTPStatus.SERVICE_UNAVAILABLE)
-                return
-
-            result = lookup_student_connect(email)
-            # Update cache on successful definitive result
-            if result.get("status") in ("found", "not_found"):
-                cached_data = set_ensign_connect_cache(email, result.get("found", False), result.get("profile_url"))
-                result["cached"] = False
-                result["checked_at"] = cached_data["checked_at"]
-
-            response_status = {
-                "unavailable": HTTPStatus.SERVICE_UNAVAILABLE,
-                "auth_required": HTTPStatus.UNAUTHORIZED,
-                "timeout": HTTPStatus.GATEWAY_TIMEOUT,
-                "error": HTTPStatus.BAD_GATEWAY,
-            }.get(result.get("status"), HTTPStatus.OK)
-            self._json(result, response_status)
+            status, payload = build_student_readiness_response(email)
+            self._json(payload, status)
             return
 
         # ----------------------------------------------------------------------
