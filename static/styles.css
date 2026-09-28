@@ -253,86 +253,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--n
 .career-lookup { margin-top: 17px; padding: 15px; border: 1px solid #d8e3e9; border-radius: 10px; background: #f8fbfc; }
 .career-lookup-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .career-lookup-heading h3 { margin: 2px 0 0; color: var(--navy-950); font-size: 14px; }
-.career-session-controls {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.auth-control-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  background: #f8fafc;
-  border: 1px solid #d8e3ea;
-  border-radius: 20px;
-  box-shadow: 0 1px 2px rgba(0,0,0,.03);
-  transition: all .16s ease;
-}
-.auth-control-item:hover {
-  background: #fff;
-  border-color: #cbd5e1;
-}
-.career-session-controls .button[hidden] { display: none; }
-.career-session-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.career-session-status::before {
-  content: "";
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #94a3b8;
-  flex-shrink: 0;
-}
-.career-session-status.ready {
-  color: #166534;
-}
-.career-session-status.ready::before {
-  background: #16a34a;
-  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
-}
-.career-session-status.warning {
-  color: #92400e;
-}
-.career-session-status.warning::before {
-  background: #d97706;
-  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
-}
-.auth-control-item .auth-btn {
-  min-height: 24px;
-  height: 24px;
-  padding: 0 10px;
-  font-size: 10.5px;
-  font-weight: 750;
-  border-radius: 12px;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-/* B5: Pulsing Auth Button */
-@keyframes authGlowPulse {
-  0% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.6); transform: scale(1); }
-  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); transform: scale(1.02); }
-  100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); transform: scale(1); }
-}
-.auth-btn.auth-pulse {
-  animation: authGlowPulse 1.8s infinite ease-in-out;
-  border-color: #d97706;
-  color: #92400e;
-  background-color: #fffbeb;
-  font-weight: 750;
-}
-
 /* B6: Required field validation */
 input.required-incomplete {
   border-color: #ef4444 !important;
@@ -731,6 +651,28 @@ input.required-incomplete {
   background: #fff7f7;
   border: 1px solid #e7c5c5;
   color: #8c3535;
+}
+.readiness-freshness {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  color: #475569;
+}
+.readiness-freshness.stale {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fcf8ef;
+  border: 1px solid #e5d7ba;
+  color: #795b1e;
+  font-weight: 650;
+}
+.module-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #334155;
 }
 
 /* Assessment Modules Grid */
@@ -1185,7 +1127,6 @@ input.required-incomplete {
   .prep-lookup-bar { flex-direction: column-reverse; align-items: stretch; gap: 12px; }
   .prep-lookup-bar .prep-check-btn { width: 100%; justify-content: center; }
   .career-lookup-heading { align-items: flex-start; flex-direction: column; }
-  .career-session-controls { width: 100%; justify-content: space-between; }
   .career-lookup-form { grid-template-columns: 1fr; }
   .recommendation { grid-template-columns: 1fr; }
   .recommendation-content { display: block; }
@@ -1488,8 +1429,6 @@ input.required-incomplete {
   html, body { overflow-x: hidden; }
   #prep-step-1.prep-card { padding: 17px; }
   #prep-step-1 .section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
-  #prep-step-1 .career-session-controls { align-items: stretch; justify-content: stretch; gap: 7px; }
-  #prep-step-1 .auth-control-item { width: 100%; justify-content: flex-start; }
   #prep-step-1 .prep-student-fields { grid-template-columns: minmax(0, 1fr); }
   #prep-step-1 .prep-connect-section { padding: 13px; }
   #prep-step-1 .prep-subheading { align-items: flex-start; flex-direction: column; gap: 9px; }
