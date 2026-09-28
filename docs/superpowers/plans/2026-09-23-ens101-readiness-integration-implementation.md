@@ -33,6 +33,12 @@
 
 ### Task 1: Add and Test the Strict Student Readiness Client
 
+> **Revised 2026-09-28** to match the deployed hub contract: hub `README.md`
+> "ENS101 projection API" and `build_ens101_projection()` / the projection route
+> in hub `app.py` at commit `3bb7339`. The original draft assumed a numeric
+> version, top-level `peoplegrove`/`pathwayu` fields, and a `200` for
+> `not_found`; none of those match the hub.
+
 **Files:**
 - Create: `readiness_client.py`
 - Create: `tests/test_readiness_client.py`
@@ -40,71 +46,80 @@
 
 **Interfaces:**
 - Consumes: `READINESS_HUB_URL`, `~/Library/Application Support/Ensign Student Readiness Hub/consumer-token`, and Student Readiness `ens101.v1`.
-- Produces: `lookup_ens101_projection(email, *, urlopen_fn=urlopen) -> dict` and `ReadinessUnavailable`, `ReadinessContractError` exceptions.
+- Produces: `lookup_ens101_projection(email, *, urlopen_fn=urlopen, token=None, base_url=READINESS_HUB_URL) -> dict` and the exceptions below.
+
+**Contract the client enforces (from the hub):**
+
+```json
+{
+  "projection": "ens101.v1",
+  "projection_version": "1",
+  "record_status": "complete | incomplete | not_found",
+  "freshness": "fresh | stale",
+  "last_successful_import_at": "ISO-8601 string or null",
+  "sources": {
+    "peoplegrove":     {"status": "fresh | stale | missing", "imported_at": "string or null"},
+    "career_explorer": {"status": "fresh | stale | missing", "imported_at": "string or null"}
+  },
+  "data": {
+    "ensign_connect": {"account_ready": "true | false | null"},
+    "career_explorer": "object or null (individual detail fields may be null)"
+  },
+  "warnings": ["string", "..."]
+}
+```
+
+- `projection_version` is the **string** `"1"`; the number `1` is rejected.
+- `404` carries a full projection body with `record_status: "not_found"`. It is a valid answer, not an outage.
+- The HTTP status and `record_status` must agree: `404` if and only if `not_found`.
+
+**HTTP status → client outcome:**
+
+| Hub response | Client outcome |
+|---|---|
+| `200` | Validated payload (`complete` or `incomplete`) |
+| `404` | Validated payload (`not_found`) |
+| `400 invalid_request` | `ReadinessRequestError` |
+| `401 unauthorized`, `403 forbidden_projection`, missing token | `ReadinessConfigError` (subclass of `ReadinessUnavailable`) |
+| `409 unsupported_projection` | `ReadinessContractError` |
+| `5xx`, timeout, connection refused, non-JSON body | `ReadinessUnavailable` |
+| `200`/`404` whose body fails validation | `ReadinessContractError` |
+
+`urllib` raises `HTTPError` for every 4xx/5xx, so the client catches `HTTPError` **before** `URLError`/`OSError` and branches on `error.code`. No exception message may include the response body, the token, or the email.
 
 - [ ] **Step 1: Write failing client tests**
 
+Use a `fake_open` that returns a response object for `200` and raises `urllib.error.HTTPError(url, code, msg, hdrs, io.BytesIO(body))` for other statuses. Build payloads from one synthetic `valid_projection(**overrides)` helper so each test changes only the field under test. Cover at minimum:
+
+- Requests exactly `POST {base}/api/v1/projections/ens101.v1/lookup` with body `{"email": ...}` only (no refresh fields) and the `X-Readiness-Token` header; email is trimmed and lowercased.
+- Accepts a complete fresh `200`.
+- Accepts a stale record with `last_successful_import_at: null`, a `missing` source, `account_ready: null`, and `data.career_explorer: null`.
+- Returns (does not raise) a `404` `not_found` body.
+- Rejects `projection_version` as the number `1`, and a wrong `projection` name.
+- Rejects an unknown `record_status` or `freshness`, a missing `sources`/`data`/`warnings` key, and a non-boolean `account_ready`.
+- Rejects a `200` claiming `not_found` and a `404` claiming `complete`.
+- Maps `409` → `ReadinessContractError`; `401`/`403`/missing token → `ReadinessConfigError`; `400` → `ReadinessRequestError`; `503`, `OSError`, timeout, and non-JSON → `ReadinessUnavailable`.
+- Asserts `isinstance(ReadinessConfigError(), ReadinessUnavailable)`.
+- No raised message contains the synthetic email or token.
+
 ```python
-import io
-import json
-import unittest
+def test_not_found_404_is_an_answer_not_an_outage(self):
+    body = valid_projection(record_status="not_found")
+    fake_open = fake_http_error(404, body)
+    payload = lookup_ens101_projection("synthetic@ensign.edu", urlopen_fn=fake_open,
+                                       token="synthetic-token")
+    self.assertEqual(payload["record_status"], "not_found")
 
-from readiness_client import (
-    ReadinessContractError,
-    ReadinessUnavailable,
-    lookup_ens101_projection,
-)
-
-
-class FakeResponse:
-    status = 200
-    def __init__(self, payload):
-        self.payload = payload
-    def __enter__(self):
-        return self
-    def __exit__(self, *args):
-        return False
-    def read(self):
-        return json.dumps(self.payload).encode("utf-8")
-
-
-class ReadinessClientTests(unittest.TestCase):
-    def test_requests_exact_projection_without_refresh_fields(self):
-        captured = {}
-        def fake_open(request, timeout):
-            captured["url"] = request.full_url
-            captured["body"] = json.loads(request.data)
-            return FakeResponse({
-                "projection": "ens101.v1", "projection_version": 1,
-                "record_status": "complete", "freshness": "fresh",
-                "last_successful_import_at": "2026-09-23T09:00:00Z",
-                "peoplegrove": {"status": "current"},
-                "pathwayu": {"status": "complete", "completed_count": 4,
-                             "total": 4, "assessments": {}},
-            })
+def test_numeric_projection_version_is_rejected(self):
+    fake_open = fake_ok(valid_projection(projection_version=1))
+    with self.assertRaises(ReadinessContractError):
         lookup_ens101_projection("synthetic@ensign.edu", urlopen_fn=fake_open,
-                                 token="synthetic-token", base_url="http://127.0.0.1:5055")
-        self.assertTrue(captured["url"].endswith("/api/v1/projections/ens101.v1/lookup"))
-        self.assertEqual(captured["body"], {"email": "synthetic@ensign.edu"})
-
-    def test_wrong_projection_is_rejected(self):
-        def fake_open(request, timeout):
-            return FakeResponse({"projection": "resume.v1", "projection_version": 1})
-        with self.assertRaises(ReadinessContractError):
-            lookup_ens101_projection("synthetic@ensign.edu", urlopen_fn=fake_open,
-                                     token="synthetic-token")
-
-    def test_connection_failure_is_unavailable(self):
-        def fake_open(request, timeout):
-            raise OSError("connection refused")
-        with self.assertRaises(ReadinessUnavailable):
-            lookup_ens101_projection("synthetic@ensign.edu", urlopen_fn=fake_open,
-                                     token="synthetic-token")
+                                 token="synthetic-token")
 ```
 
 - [ ] **Step 2: Run the focused tests and confirm failure**
 
-Run: `python -m unittest tests.test_readiness_client -v`
+Run: `python3 -m unittest tests.test_readiness_client -v`
 
 Expected: FAIL because `readiness_client.py` does not exist.
 
@@ -112,38 +127,40 @@ Expected: FAIL because `readiness_client.py` does not exist.
 
 ```python
 PROJECTION = "ens101.v1"
-PROJECTION_VERSION = 1
+PROJECTION_VERSION = "1"
 
 
 def lookup_ens101_projection(email, *, urlopen_fn=urlopen, token=None,
                              base_url=READINESS_HUB_URL):
-    if not token:
-        token = read_consumer_token()
-    body = json.dumps({"email": email.strip().lower()}).encode("utf-8")
+    token = token or read_consumer_token()  # raises ReadinessConfigError when absent
     request = Request(
         f"{base_url.rstrip('/')}/api/v1/projections/{PROJECTION}/lookup",
-        data=body,
+        data=json.dumps({"email": email.strip().lower()}).encode("utf-8"),
         headers={"Content-Type": "application/json", "X-Readiness-Token": token},
         method="POST",
     )
     try:
         with urlopen_fn(request, timeout=4.0) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except Exception as error:
+            status, raw = response.status, response.read()
+    except HTTPError as error:          # must come before URLError/OSError
+        status, raw = error.code, error.read()
+        raise_for_status(status)        # 400/401/403/409/5xx -> named exceptions
+    except (URLError, OSError, TimeoutError) as error:
         raise ReadinessUnavailable("Student Readiness is temporarily unavailable") from error
-    validate_projection(payload)
+    payload = parse_json(raw)           # non-JSON -> ReadinessUnavailable
+    validate_projection(payload, http_status=status)
     return payload
 ```
 
-`validate_projection` must require the exact projection/version, a known `record_status`, known `freshness`, timestamp fields, and object-shaped PeopleGrove/PathwayU fields when present. Error messages must not include response bodies or email addresses.
+`validate_projection` enforces every rule in the contract above and raises `ReadinessContractError` with a message naming only the offending field.
 
 - [ ] **Step 4: Document only non-secret configuration**
 
-Add `READINESS_HUB_URL=http://127.0.0.1:5055` to `.env.example`; document the token path but never add token contents.
+Add `READINESS_HUB_URL=http://127.0.0.1:5055` to `.env.example` with a comment giving the token path; never add token contents.
 
 - [ ] **Step 5: Run focused and complete tests**
 
-Run: `python -m unittest tests.test_readiness_client -v && python -m unittest discover -v`
+Run: `python3 -m unittest tests.test_readiness_client -v && python3 -m unittest discover -v`
 
 Expected: all tests PASS.
 
@@ -206,6 +223,8 @@ In `app.py`, validate the email and rate limit exactly once, call `lookup_ens101
 - `not_found` -> HTTP 404
 - `ReadinessUnavailable` -> HTTP 503
 - `ReadinessContractError` -> HTTP 502 with `incompatible_schema`
+- `ReadinessRequestError` -> HTTP 400 with `invalid_request` (the email is never echoed)
+- `ReadinessConfigError` needs no branch: it subclasses `ReadinessUnavailable` and maps to 503; log its class name server-side so setup problems are distinguishable
 
 Do not catch these conditions and call another lookup provider.
 
