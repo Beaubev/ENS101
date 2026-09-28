@@ -1,8 +1,11 @@
 import copy
 import io
 import json
+import os
 import socket
+import tempfile
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
 from readiness_client import (
@@ -12,6 +15,7 @@ from readiness_client import (
     ReadinessRequestError,
     ReadinessUnavailable,
     lookup_ens101_projection,
+    read_consumer_token,
 )
 
 
@@ -214,6 +218,16 @@ class FailureMappingTests(unittest.TestCase):
     def test_missing_token_is_a_config_error(self):
         with self.assertRaises(ReadinessConfigError):
             lookup(fake_ok(valid_projection()), token="", token_reader=lambda: None)
+
+    def test_token_path_can_be_overridden(self):
+        with tempfile.TemporaryDirectory() as directory:
+            token_file = os.path.join(directory, "consumer-token")
+            with open(token_file, "w", encoding="utf-8") as handle:
+                handle.write(SYNTHETIC_TOKEN + "\n")
+            with patch.dict(os.environ, {"READINESS_CONSUMER_TOKEN_PATH": token_file}):
+                self.assertEqual(read_consumer_token(), SYNTHETIC_TOKEN)
+            with patch.dict(os.environ, {"READINESS_CONSUMER_TOKEN_PATH": token_file + ".missing"}):
+                self.assertIsNone(read_consumer_token())
 
     def test_error_hierarchy(self):
         self.assertTrue(issubclass(ReadinessConfigError, ReadinessUnavailable))

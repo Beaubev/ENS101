@@ -54,8 +54,9 @@ class ReadinessRequestError(ReadinessError):
 
 
 def read_consumer_token():
+    path = Path(os.environ.get("READINESS_CONSUMER_TOKEN_PATH") or TOKEN_PATH).expanduser()
     try:
-        token = TOKEN_PATH.read_text(encoding="utf-8").strip()
+        token = path.read_text(encoding="utf-8").strip()
     except OSError:
         return None
     return token or None
