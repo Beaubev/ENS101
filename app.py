@@ -32,7 +32,8 @@ _sys.path.insert(0, _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 
 from career_explorer_engine import (
     parse_career_explorer_pdf, build_briefing, build_career_recommendations,
     generate_guidance_sections, personality_description,
-    STRENGTHS_FRAMING_PROMPT, VOICE_STUDENT, VOICE_MENTOR,
+    hexaco_terminology_prompt, normalize_assessment_data, assessment_prompt_context,
+    STRENGTHS_FRAMING_PROMPT, PROFILE_MENTOR_ENS101,
     TRAIT_EXPLANATIONS, MAJOR_ALIGNMENTS, CAREER_ALIGNMENTS,
 )
 from urllib.request import Request, urlopen
@@ -610,7 +611,13 @@ def parse_pathwayu_text(text: str) -> dict:
 
 def generate_career_guidance(student_name: str, program: str, career: str, assessment_data: dict | None = None) -> dict:
     """Generates tailored guidance from Career Explorer assessment results and student context."""
-    return generate_guidance_sections(student_name, program, career, assessment_data, voice=VOICE_MENTOR)
+    return generate_guidance_sections(
+        student_name,
+        program,
+        career,
+        assessment_data,
+        profile=PROFILE_MENTOR_ENS101,
+    )
 
 
 # ==============================================================================
@@ -679,6 +686,8 @@ MCMULLIN_VIDEO_URL = "https://www.youtube.com/watch?v=Rwdv2V0lOIM"
 FOOTER_TEXT = f"""Ensign College Career Services • 10th Floor
 [Career Services Help]({CAREER_SERVICES_URL}) • [Career & Major Exploration Roadmap]({ROADMAP_URL})"""
 
+HEXACO_TERMINOLOGY_PROMPT = hexaco_terminology_prompt(PROFILE_MENTOR_ENS101)
+
 CAREER_EXPLORER_SYSTEM_PROMPT = f"""Mentor Career Explorer System Prompt
 
 System Identity & Target Audience:
@@ -708,7 +717,7 @@ Assist mentors in coaching students with this focused mission at the center:
 
 Mentor Coaching Objectives:
 1. Executive Assessment Synthesis: Provide concise, high-yield summaries of student results across all four assessments:
-   - Personality Profile (HEXACO - Emotional Stability, Extraversion, Openness, Conscientiousness, Agreeableness, Honesty-Humility)
+   - Personality Profile (HEXACO - Emotionality, Extraversion, Openness to Experience, Conscientiousness, Agreeableness, Honesty-Humility)
    - Workplace Environment Preferences
    - Top Core Values
    - Holland Code & Interests (RIASEC)
@@ -759,8 +768,9 @@ Constraints:
    - Use exact program names from Doc 1. Distinguish between certificates, AAS, and BAS.
    - Use "Direct Preparation" or "Foundational Preparation" labels per Doc 2.
    - State clearly when Ensign does not offer a relevant program.
-8. Strengths-Based Personality Framing:
-   When describing HEXACO personality scores — especially lower scores — ALWAYS use strengths-based language. Never describe a trait score as a weakness, deficit, or problem. Low Emotional Stability = heightened empathy and deep attunement to others. Low Conscientiousness = flexibility, adaptability, and an organic work style. Low Extraversion = thoughtful independent focus and deliberate communication. Low Openness = grounded expertise and reliability. Frame every trait, at every level, as an asset when matched to the right environment and role.
+8. {STRENGTHS_FRAMING_PROMPT}
+
+{HEXACO_TERMINOLOGY_PROMPT}
 
 Official Degree List from Doc 1:
 - Accounting Certificate, Accounting AAS, Accounting BAS, Finance BAS
@@ -784,7 +794,7 @@ Provide key coaching points and advice the mentor can share with the student:
 Goal: Provide the Career Mentor with an executive assessment synthesis of the student's Career Explorer results to prepare for their 1-on-1 coaching session.
 Base analysis ONLY on the uploaded or provided assessment data. If information is missing, say: 'That information was not visible in the uploaded report.'
 Required structure for the mentor:
-1. Personality Profile (HEXACO): Summarize scores (use 'Emotional Stability' instead of 'Neuroticism') with 2-3 coaching takeaways for the mentor.
+1. Personality Profile (HEXACO): Summarize scores using the mandatory Emotional Sensitivity label with 2-3 coaching takeaways for the mentor.
 2. Workplace Preferences: Highlight top organizational preferences and how the mentor can help the student evaluate work environments.
 3. Core Values: Top 3 only; one sentence per value explaining what motivates the student.
 4. Interests & Holland Code: State the RIASEC code and explain aligned work environments with 2-3 related O*NET occupations.
@@ -866,10 +876,10 @@ Guided by the mission of Ensign College, we help mentors develop students into c
 {FOOTER_TEXT}"""
 
     if mode in ("step2", "prep-guidance"):
-        return build_briefing(parsed_data, voice=VOICE_MENTOR, pathwayu_url=PATHWAYU_URL, footer_text=FOOTER_TEXT)
+        return build_briefing(parsed_data, profile=PROFILE_MENTOR_ENS101, pathwayu_url=PATHWAYU_URL, footer_text=FOOTER_TEXT)
 
     if mode in ("step3", "prep-notes"):
-        return build_career_recommendations(voice=VOICE_MENTOR, footer_text=FOOTER_TEXT)
+        return build_career_recommendations(parsed_data, profile=PROFILE_MENTOR_ENS101, footer_text=FOOTER_TEXT)
 
     if mode in ("step4",):
         return f"""### Life Design & Calling: Mentoring Guide for Career Mentors
@@ -1013,6 +1023,7 @@ def fallback_reply(message: str, mode: str, headers=None) -> str:
 
 def query_qwen(message: str, mode: str, history: list[dict[str, str]], parsed_data: dict | None = None) -> str | None:
     """Queries LM Studio Qwen via OpenAI-compatible /v1/chat/completions."""
+    parsed_data = normalize_assessment_data(parsed_data)
     if not LM_STUDIO_URL:
         return None
 
@@ -1022,7 +1033,7 @@ def query_qwen(message: str, mode: str, history: list[dict[str, str]], parsed_da
         mode_context = CAREER_EXPLORER_MODE_CONTEXTS.get(mode, "")
         data_context = ""
         if parsed_data and any(parsed_data.get(k) for k in ["holland_code", "primary_interests", "primary_values", "personality", "primary_workplace_preferences"]):
-            data_context = f"\nUploaded Assessment Data:\n{json.dumps(parsed_data, indent=2)}"
+            data_context = assessment_prompt_context(parsed_data, PROFILE_MENTOR_ENS101)
         system_content = f"{CAREER_EXPLORER_SYSTEM_PROMPT}\n\n{mode_context}{data_context}".strip()
     else:
         mode_context = MODE_CONTEXTS.get(mode, "")
