@@ -205,10 +205,12 @@ def _validate_vmock(record):
     if record.get("latest_zone") not in ({"green", "yellow", "red"} if uploaded else {None}):
         _reject("data.vmock.latest_zone")
     subscores = record.get("latest_subscores")
-    if not isinstance(subscores, dict):
+    if uploaded and not isinstance(subscores, dict):
+        _reject("data.vmock.latest_subscores")
+    if not uploaded and ("latest_subscores" not in record or subscores is not None):
         _reject("data.vmock.latest_subscores")
     for values, fields in ((record, ("latest_score", "first_score", "highest_score")),
-                           (subscores, ("impact", "presentation", "competencies"))):
+                           (subscores or {}, ("impact", "presentation", "competencies") if uploaded else ())):
         for field in fields:
             value = values.get(field)
             if field not in values or (uploaded and (type(value) is not int or not 0 <= value <= 100)) or (not uploaded and value is not None):

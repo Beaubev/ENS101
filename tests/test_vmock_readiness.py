@@ -35,7 +35,7 @@ class VMockContractTests(unittest.TestCase):
         record = payload['data']['vmock']
         record.update(resume_uploaded=False, latest_zone=None, latest_score=None,
                       first_score=None, highest_score=None, latest_upload_date=None,
-                      latest_subscores=dict.fromkeys(('impact', 'presentation', 'competencies')))
+                      latest_subscores=None)
         validate_projection(payload, http_status=200)
 
     def test_malformed_optional_data_is_rejected(self):
