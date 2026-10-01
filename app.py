@@ -1296,6 +1296,10 @@ class CoachHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         clean_path = self.path.split("?")[0]
+        if clean_path == "/favicon.ico":
+            self.path = "/favicon.svg"
+            super().do_GET()
+            return
         if clean_path in RETIRED_SOURCE_ENDPOINTS:
             self._json_retired()
             return

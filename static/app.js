@@ -190,6 +190,8 @@ function renderStudentSwitcher() {
 }
 
 async function loadAppointmentById(appId) {
+  readinessLookupVersion++;
+  clearVmockReadiness();
   if (!appId) {
     resetAppointmentLocal();
     return;
@@ -951,6 +953,85 @@ function formatReadinessTimestamp(value) {
     : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
+let readinessLookupVersion = 0;
+
+function clearVmockReadiness() {
+  const panel = $('#vmock-readiness');
+  if (!panel) return;
+  panel.hidden = true;
+  ['vmock-status', 'vmock-freshness', 'vmock-guidance'].forEach(id => {
+    const el = $(`#${id}`);
+    if (el) el.textContent = '';
+  });
+  $('#vmock-metrics')?.replaceChildren();
+}
+
+function renderVmockReadiness(projection) {
+  clearVmockReadiness();
+  const panel = $('#vmock-readiness');
+  if (!panel) return;
+  panel.hidden = false;
+  const record = projection.data?.vmock;
+  const source = projection.sources?.vmock;
+  const status = $('#vmock-status');
+  const freshness = $('#vmock-freshness');
+  const metrics = $('#vmock-metrics');
+  const guidance = $('#vmock-guidance');
+  status.className = 'vmock-status neutral';
+  metrics.hidden = true;
+  freshness.className = 'vmock-freshness';
+  const updated = formatReadinessTimestamp(source?.imported_at);
+  if (source?.status === 'stale') {
+    freshness.textContent = `VMock data is older than 36 hours. Showing the last successful import${updated ? ` from ${updated}` : ''}.`;
+    freshness.className += ' stale';
+  } else if (source?.status === 'fresh') {
+    freshness.textContent = updated ? `VMock last updated ${updated}.` : 'VMock import date unavailable.';
+  } else {
+    freshness.textContent = 'VMock data has not been imported or is unavailable.';
+  }
+  if (!record) {
+    status.textContent = 'No VMock record found';
+    guidance.textContent = 'Confirm the student uses their Ensign email in VMock. No score is available from the retrieved data.';
+    return;
+  }
+  if (!record.resume_uploaded) {
+    status.textContent = 'No resume uploaded';
+    guidance.textContent = record.signed_up
+      ? 'Ask the student to upload a resume in VMock, then review the feedback together.'
+      : 'VMock sign-up is not complete. Help the student finish signing up and upload a resume.';
+    return;
+  }
+  const zones = {
+    green: { label: 'Green zone', style: 'success', advice: 'Refine the resume for the target role and review VMock’s detailed feedback together.' },
+    yellow: { label: 'Yellow zone', style: 'warning', advice: 'Review VMock’s recommendations together, revise the resume, and upload it again.' },
+    red: { label: 'Red zone', style: 'error', advice: 'Prioritize a resume review together. Use VMock’s detailed feedback to plan the next revision.' },
+  };
+  const zone = zones[record.latest_zone];
+  status.textContent = zone?.label || 'Resume uploaded; zone unavailable';
+  status.className = `vmock-status ${zone?.style || 'neutral'}`;
+  guidance.textContent = zone?.advice || 'Review the full feedback in VMock; the retrieved zone is unavailable.';
+  const add = (label, value) => {
+    const row = document.createElement('div');
+    const term = document.createElement('dt');
+    const definition = document.createElement('dd');
+    term.textContent = label;
+    definition.textContent = value === null || value === undefined ? 'Unavailable' : String(value);
+    row.append(term, definition);
+    metrics.append(row);
+  };
+  add('Latest score', record.latest_score);
+  ['impact', 'presentation', 'competencies'].forEach(name =>
+    add(name[0].toUpperCase() + name.slice(1), record.latest_subscores?.[name]));
+  if (Number.isInteger(record.first_score) && Number.isInteger(record.latest_score)) {
+    const delta = record.latest_score - record.first_score;
+    add('First → latest', `${record.first_score} → ${record.latest_score} (${delta > 0 ? '+' : ''}${delta} points)`);
+  }
+  add('Highest score', record.highest_score);
+  add('Resume uploads', record.resume_upload_count);
+  add('Latest upload', record.latest_upload_date);
+  metrics.hidden = false;
+}
+
 function assessmentDataFromReadiness(careerExplorer) {
   const base = defaultState().assessmentData;
   if (!careerExplorer) return { ...base, source: 'student_readiness', status: 'not_found' };
@@ -1050,6 +1131,7 @@ async function applyReadinessProjection(projection) {
 
   renderAssessmentCards();
   renderReadinessFreshness(projection);
+  renderVmockReadiness(projection);
 
   if (projection.record_status === 'not_found') {
     showLookupFeedback(
@@ -1071,6 +1153,8 @@ async function applyReadinessProjection(projection) {
 
 // One request to the Student Readiness Hub projection; no source is ever contacted directly.
 async function performStudentLookup(email) {
+  const lookupVersion = ++readinessLookupVersion;
+  clearVmockReadiness();
   if (!email || !/^[^@\s]+@ensign\.edu$/i.test(email)) {
     validatePrepStep1(true);
     showToast('Please enter a valid student @ensign.edu address.');
@@ -1094,8 +1178,11 @@ async function performStudentLookup(email) {
     response = null;
   }
 
+  // An email edit, student switch, reset or newer lookup invalidates this reply.
+  if (lookupVersion !== readinessLookupVersion) return;
   if (response && (response.ok || response.status === 404) && data.projection) {
     await applyReadinessProjection(data);
+    if (lookupVersion !== readinessLookupVersion) return;
     if (data.record_status === 'complete') {
       showLookupFeedback('success', '✓ Student Readiness record is complete.');
       showToast('✓ Student Readiness checked');
@@ -1290,6 +1377,8 @@ async function handleDeleteRecordAfterCivitas() {
 }
 
 function resetAppointmentLocal() {
+  readinessLookupVersion++;
+  clearVmockReadiness();
   state = defaultState();
   localStorage.removeItem(ACTIVE_APPT_ID_KEY);
   syncInputsFromState();
@@ -1679,6 +1768,8 @@ function bindEvents() {
 
   // B6: Live validation on email input
   $('#prep-student-email')?.addEventListener('input', () => {
+    readinessLookupVersion++;
+    clearVmockReadiness();
     validatePrepStep1(false);
   });
 

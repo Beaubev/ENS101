@@ -11,6 +11,8 @@ Contract: Student Readiness Hub README, "ENS101 projection API (`ens101.v1`)".
 
 import json
 import os
+import re
+from datetime import date
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -170,6 +172,17 @@ def validate_projection(payload, *, http_status):
     ):
         _reject("data.career_explorer")
 
+    # VMock was added to v1 without changing its two-source readiness gate.
+    # Older Hub responses remain valid, but present VMock fields must be sound.
+    if "vmock" in sources:
+        source = sources["vmock"]
+        if not isinstance(source, dict) or source.get("status") not in SOURCE_STATUSES:
+            _reject("sources.vmock")
+        if "imported_at" not in source or not _is_optional_str(source["imported_at"]):
+            _reject("sources.vmock.imported_at")
+    if "vmock" in data and data["vmock"] is not None:
+        _validate_vmock(data["vmock"])
+
     warnings = payload.get("warnings")
     if not isinstance(warnings, list) or not all(isinstance(w, str) for w in warnings):
         _reject("warnings")
@@ -177,6 +190,42 @@ def validate_projection(payload, *, http_status):
 
 def _is_optional_str(value):
     return value is None or isinstance(value, str)
+
+
+def _validate_vmock(record):
+    if not isinstance(record, dict):
+        _reject("data.vmock")
+    for field in ("signed_up", "resume_uploaded"):
+        if type(record.get(field)) is not bool:
+            _reject(f"data.vmock.{field}")
+    count = record.get("resume_upload_count")
+    if type(count) is not int or count < 0:
+        _reject("data.vmock.resume_upload_count")
+    uploaded = record["resume_uploaded"]
+    if record.get("latest_zone") not in ({"green", "yellow", "red"} if uploaded else {None}):
+        _reject("data.vmock.latest_zone")
+    subscores = record.get("latest_subscores")
+    if uploaded and not isinstance(subscores, dict):
+        _reject("data.vmock.latest_subscores")
+    if not uploaded and ("latest_subscores" not in record or subscores is not None):
+        _reject("data.vmock.latest_subscores")
+    for values, fields in ((record, ("latest_score", "first_score", "highest_score")),
+                           (subscores or {}, ("impact", "presentation", "competencies") if uploaded else ())):
+        for field in fields:
+            value = values.get(field)
+            if field not in values or (uploaded and (type(value) is not int or not 0 <= value <= 100)) or (not uploaded and value is not None):
+                _reject(f"data.vmock.{field}")
+    value = record.get("latest_upload_date")
+    if not uploaded:
+        if "latest_upload_date" not in record or value is not None:
+            _reject("data.vmock.latest_upload_date")
+    else:
+        if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            _reject("data.vmock.latest_upload_date")
+        try:
+            date.fromisoformat(value)
+        except ValueError:
+            _reject("data.vmock.latest_upload_date")
 
 
 def _reject(field):

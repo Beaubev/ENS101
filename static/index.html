@@ -9,7 +9,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="ces-tokens.css?v=1.1" />
     <link rel="stylesheet" href="ces-components.css?v=1.1" />
-    <link rel="stylesheet" href="styles.css?v=13" />
+    <link rel="stylesheet" href="styles.css?v=14" />
     <!-- Vercel Web Analytics -->
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -148,6 +148,14 @@
                       </div>
                     </div>
                   </div>
+
+                  <section id="vmock-readiness" class="vmock-readiness" aria-labelledby="vmock-heading" hidden>
+                    <h3 id="vmock-heading">VMock resume feedback</h3>
+                    <p id="vmock-status" class="vmock-status neutral" role="status"></p>
+                    <p id="vmock-freshness" class="vmock-freshness"></p>
+                    <dl id="vmock-metrics" class="vmock-metrics" hidden></dl>
+                    <p id="vmock-guidance"></p>
+                  </section>
 
                   <!-- 4 Assessment Cards Grid -->
                   <div class="prep-assessment-section">
@@ -599,6 +607,6 @@
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
     <script src="ces-motion.js"></script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
   </body>
 </html>
