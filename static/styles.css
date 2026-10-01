@@ -269,6 +269,21 @@ input.required-incomplete {
 
 /* Ensign Connect Account Section */
 .prep-connect-section { margin-top: 18px; padding: 14px 16px; border: 1px solid #d8e3e9; border-radius: 10px; background: #f8fbfc; }
+.vmock-readiness { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 19px; line-height: 1.6; }
+.vmock-readiness[hidden], .vmock-metrics[hidden] { display: none; }
+.vmock-readiness h3 { font-size: 19px; margin: 0 0 12px; }
+.vmock-readiness p { font-size: 17px; margin: 12px 0; overflow-wrap: anywhere; }
+.vmock-status { display: inline-block; padding: 6px 12px; border: 1px solid; border-radius: var(--ces-radius-pill); }
+.vmock-status.success { color: var(--ces-status-success-text); background: var(--ces-status-success-bg); border-color: var(--ces-status-success-border); }
+.vmock-status.warning { color: var(--ces-status-warning-text); background: var(--ces-status-warning-bg); border-color: var(--ces-status-warning-border); }
+.vmock-status.error { color: var(--ces-status-error-text); background: var(--ces-status-error-bg); border-color: var(--ces-status-error-border); }
+.vmock-status.neutral { color: var(--ces-status-neutral-text); background: var(--ces-status-neutral-bg); border-color: var(--ces-status-neutral-border); }
+.vmock-freshness { color: var(--muted); }
+.vmock-freshness.stale { color: var(--ces-status-warning-text); }
+.vmock-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 16px; margin: 16px 0; }
+.vmock-metrics > div { min-width: 0; }
+.vmock-metrics dt { font-size: 17px; color: var(--muted); }
+.vmock-metrics dd { margin: 2px 0 0; font-size: 19px; font-weight: 600; overflow-wrap: anywhere; }
 .connect-action-group { display: flex; align-items: center; gap: 10px; }
 .timestamp-subtext { color: #64748b; font-size: 11px; font-weight: 600; }
 .connect-status-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; gap: 12px; }
@@ -1451,4 +1466,3 @@ input.required-incomplete {
     color: ButtonText;
   }
 }
-
