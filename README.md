@@ -90,4 +90,4 @@ ENS101_PATHWAYU_PROFILE_DIR=
 
 ## Source
 
-Adapted from the [Gemini Coaching Agent Starter](https://github.com/robbagley-afk/gemini-coaching-agent-starter). The ENS 101 workflow and interface are purpose-built for this project.
+Adapted from the [Gemini Coaching Agent Starter](https://github.com/robbagley-dev/gemini-coaching-agent-starter). The ENS 101 workflow and interface are purpose-built for this project.
